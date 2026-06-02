@@ -10,7 +10,7 @@ import SubAdminPage from "./pages/SubAdminPage";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 
-const isLoggedIn = () => localStorage.getItem("admin_auth") === "true";
+const isLoggedIn = () => !!localStorage.getItem("admin_token");
 
 function AdminLayout({ children }) {
   return (

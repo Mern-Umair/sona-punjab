@@ -1,36 +1,62 @@
 import { useState } from "react";
 import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
 import { FaTrophy } from "react-icons/fa";
+import {
+  useGetTournamentsQuery,
+  useCreateTournamentMutation,
+  useUpdateTournamentMutation,
+  useDeleteTournamentMutation,
+  useToggleScreenMutation,
+} from "../../redux/api/tournamentApi";
+import { useGetClubsQuery } from "../../redux/api/clubApi";
+import { useGetOwnersQuery } from "../../redux/api/ownerApi";
+import toast, { Toaster } from "react-hot-toast";
 
-const clubs = ["Warraichan wala cup", "Ashfaq Gaigi Memorial", "Others"];
-const owners = [
-  { id: 1, name: "Arslan Akmal",      city: "Lahore" },
-  { id: 2, name: "Ch Mubbashir Gaigi", city: "Warraichan wala" },
-  { id: 3, name: "Ch Tuseef maher",   city: "Chakora" },
-  { id: 4, name: "Ch Mansha Gaigi",   city: "Chakora" },
-  { id: 5, name: "Ch Tariq kasana",   city: "Kamala" },
-];
-
-function CreateTournamentModal({ onClose, onSave }) {
+function CreateTournamentModal({ onClose, onSave, initial }) {
   const [form, setForm] = useState({
-    poster: null, posterPreview: null,
-    name: "", club: "", startDate: "", startTime: "",
-    days: "", continueDays: "", pigeons: "", helperPigeons: "",
-    prizes: "", screen: "Off Screen", subadmins: [],
+    name:          initial?.name          || "",
+    startDate:     initial?.startDate ? new Date(initial.startDate).toISOString().split("T")[0] : "",
+    startTime:     initial?.startTime     || "",
+    days:          initial?.days          || "",
+    continueDays:  initial?.continueDays  || "",
+    pigeons:       initial?.pigeons       || "",
+    helperPigeons: initial?.helperPigeons || "",
+    prizes:        initial?.prizes        || "",
+    screen:        initial?.screen        || "Off Screen",
+    club:          initial?.club?._id     || "",
+    poster:        null,
+    posterPreview: initial?.posterUrl     || null,
   });
-  const [search, setSearch] = useState("");
-  const [selectedOwners, setSelectedOwners] = useState([]);
 
-  const filtered = owners.filter(o =>
-    o.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const [dates,          setDates]          = useState(initial?.dates?.map(d => d.split("T")[0]) || []);
+  const [prizeDetails,   setPrizeDetails]   = useState(initial?.prizeDetails || []);
+  const [search,         setSearch]         = useState("");
+  const [selectedOwners, setSelectedOwners] = useState(initial?.owners || []);
 
-  const toggleOwner = (owner) => {
-    setSelectedOwners(prev =>
-      prev.find(o => o.id === owner.id)
-        ? prev.filter(o => o.id !== owner.id)
-        : [...prev, owner]
-    );
+  const { data: clubsData }  = useGetClubsQuery();
+  const { data: ownersData } = useGetOwnersQuery(search);
+
+  const clubs  = clubsData?.data  || [];
+  const owners = ownersData?.data || [];
+
+  const handleDaysChange = (val) => {
+    const num = parseInt(val) || 0;
+    setForm({ ...form, days: val });
+    setDates(prev => {
+      const arr = [...prev];
+      while (arr.length < num) arr.push("");
+      return arr.slice(0, num);
+    });
+  };
+
+  const handlePrizesChange = (val) => {
+    const num = parseInt(val) || 0;
+    setForm({ ...form, prizes: val });
+    setPrizeDetails(prev => {
+      const arr = [...prev];
+      while (arr.length < num) arr.push("");
+      return arr.slice(0, num);
+    });
   };
 
   const handlePoster = (e) => {
@@ -39,53 +65,76 @@ function CreateTournamentModal({ onClose, onSave }) {
     setForm({ ...form, poster: f, posterPreview: URL.createObjectURL(f) });
   };
 
+  const toggleOwner = (owner) => {
+    setSelectedOwners(prev =>
+      prev.find(o => o._id === owner._id)
+        ? prev.filter(o => o._id !== owner._id)
+        : [...prev, owner]
+    );
+  };
+
+  const handleSubmit = () => {
+    if (!form.name.trim()) {
+      toast.error("Tournament name is required!");
+      return;
+    }
+    const formData = new FormData();
+    formData.set("name",          form.name);
+    formData.set("startDate",     form.startDate);
+    formData.set("startTime",     form.startTime);
+    formData.set("days",          form.days);
+    formData.set("continueDays",  form.continueDays);
+    formData.set("pigeons",       form.pigeons);
+    formData.set("helperPigeons", form.helperPigeons);
+    formData.set("prizes",        form.prizes);
+    formData.set("screen",        form.screen);
+    formData.set("club",          form.club);
+    formData.set("dates",         JSON.stringify(dates));
+    formData.set("prizeDetails",  JSON.stringify(prizeDetails));
+    formData.set("owners",        JSON.stringify(selectedOwners.map(o => o._id)));
+    if (form.poster) formData.set("poster", form.poster);
+    onSave(formData);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
       <div className="min-h-screen flex items-start justify-center px-4 py-8">
         <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl">
+
+          {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-            <h3 className="text-slate-800 font-bold text-lg">Create New Tournament</h3>
+            <h3 className="text-slate-800 font-bold text-lg">
+              {initial ? "Edit Tournament" : "Create New Tournament"}
+            </h3>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
           </div>
 
           <div className="p-6 space-y-5">
+
             {/* Poster */}
             <div className="flex flex-col items-center">
               <p className="text-slate-600 text-sm font-medium mb-2">Tournament Poster</p>
               <label className="w-44 h-52 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-[#122654] transition-colors overflow-hidden flex items-center justify-center">
-                {form.posterPreview ? (
-                  <img src={form.posterPreview} alt="poster" className="w-full h-full object-cover" />
-                ) : (
-                  <MdAdd size={36} className="text-slate-300" />
-                )}
+                {form.posterPreview
+                  ? <img src={form.posterPreview} alt="poster" className="w-full h-full object-cover" />
+                  : <MdAdd size={36} className="text-slate-300" />
+                }
                 <input type="file" accept="image/*" className="hidden" onChange={handlePoster} />
               </label>
             </div>
 
-            {/* Fields */}
-            {[
-              { label: "Tournament Name", key: "name",          type: "text" },
-              { label: "Start Date",      key: "startDate",     type: "date" },
-              { label: "Start Time",      key: "startTime",     type: "time" },
-              { label: "Number of Days",  key: "days",          type: "number", hint: "Max 50" },
-              { label: "Continue Days",   key: "continueDays",  type: "number" },
-              { label: "Number of Pigeons", key: "pigeons",     type: "number", hint: "Max 50" },
-              { label: "Helper Pigeons (Optional)", key: "helperPigeons", type: "number", hint: "Max 50" },
-              { label: "Number of Prizes", key: "prizes",       type: "number", hint: "Max 50" },
-            ].map(f => (
-              <div key={f.key}>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-600 text-sm font-medium">{f.label}</label>
-                  {f.hint && <span className="text-slate-400 text-xs">{f.hint}</span>}
-                </div>
-                <input
-                  type={f.type}
-                  value={form[f.key]}
-                  onChange={e => setForm({ ...form, [f.key]: e.target.value })}
-                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
-                />
-              </div>
-            ))}
+            {/* Name */}
+            <div>
+              <label className="text-slate-600 text-sm font-medium block mb-1">Tournament Name</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. ALSADAAT 7 ROZA TOURNAMINT"
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+              />
+            </div>
 
             {/* Club */}
             <div>
@@ -96,9 +145,143 @@ function CreateTournamentModal({ onClose, onSave }) {
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors bg-white"
               >
                 <option value="">Select an option</option>
-                {clubs.map(c => <option key={c} value={c}>{c}</option>)}
+                {clubs.map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
               </select>
             </div>
+
+            {/* Start Date */}
+            <div>
+              <label className="text-slate-600 text-sm font-medium block mb-1">Start Date</label>
+              <input
+                type="date"
+                value={form.startDate}
+                onChange={e => setForm({ ...form, startDate: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+              />
+            </div>
+
+            {/* Start Time */}
+            <div>
+              <label className="text-slate-600 text-sm font-medium block mb-1">Start Time</label>
+              <input
+                type="time"
+                value={form.startTime}
+                onChange={e => setForm({ ...form, startTime: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+              />
+            </div>
+
+            {/* Number of Days */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-600 text-sm font-medium">Number of Days</label>
+                <span className="text-slate-400 text-xs">Max 50</span>
+              </div>
+              <input
+                type="number"
+                value={form.days}
+                onChange={e => handleDaysChange(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+              />
+            </div>
+
+            {/* Dynamic Date Fields */}
+            {dates.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {dates.map((d, i) => (
+                  <div key={i}>
+                    <label className="text-slate-600 text-sm font-medium block mb-1">Date {i + 1}</label>
+                    <input
+                      type="date"
+                      value={d}
+                      onChange={e => {
+                        const arr = [...dates];
+                        arr[i] = e.target.value;
+                        setDates(arr);
+                      }}
+                      className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Continue Days */}
+            <div>
+              <label className="text-slate-600 text-sm font-medium block mb-1">Continue Days</label>
+              <input
+                type="number"
+                value={form.continueDays}
+                onChange={e => setForm({ ...form, continueDays: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+              />
+            </div>
+
+            {/* Pigeons */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-600 text-sm font-medium">Number of Pigeons</label>
+                <span className="text-slate-400 text-xs">Max 50</span>
+              </div>
+              <input
+                type="number"
+                value={form.pigeons}
+                onChange={e => setForm({ ...form, pigeons: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+              />
+            </div>
+
+            {/* Helper Pigeons */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-600 text-sm font-medium">Helper Pigeons (Optional)</label>
+                <span className="text-slate-400 text-xs">Max 50</span>
+              </div>
+              <input
+                type="number"
+                value={form.helperPigeons}
+                onChange={e => setForm({ ...form, helperPigeons: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+              />
+            </div>
+
+            {/* Number of Prizes */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-600 text-sm font-medium">Number of Prizes</label>
+                <span className="text-slate-400 text-xs">Max 50</span>
+              </div>
+              <input
+                type="number"
+                value={form.prizes}
+                onChange={e => handlePrizesChange(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+              />
+            </div>
+
+            {/* Dynamic Prize Fields */}
+            {prizeDetails.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {prizeDetails.map((p, i) => (
+                  <div key={i}>
+                    <label className="text-slate-600 text-sm font-medium block mb-1">Prize {i + 1}</label>
+                    <input
+                      type="text"
+                      value={p}
+                      placeholder="e.g. Honda Motorcycle"
+                      onChange={e => {
+                        const arr = [...prizeDetails];
+                        arr[i] = e.target.value;
+                        setPrizeDetails(arr);
+                      }}
+                      className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Screen */}
             <div>
@@ -116,16 +299,27 @@ function CreateTournamentModal({ onClose, onSave }) {
             {/* Pigeon Owners */}
             <div>
               <label className="text-slate-600 text-sm font-medium block mb-2">Pigeons Owners</label>
-              <div className="flex gap-2 mb-3">
+              <div className="mb-3">
                 <input
                   type="text"
                   placeholder="Search pigeon owner by name"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="flex-1 border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
                 />
-                <button className="bg-[#0ea5e9] text-white px-4 py-2 rounded-lg text-sm font-semibold">Search</button>
               </div>
+
+              {selectedOwners.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {selectedOwners.map(o => (
+                    <span key={o._id} className="flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-3 py-1 rounded-full">
+                      {o.name}
+                      <button onClick={() => toggleOwner(o)} className="text-blue-400 hover:text-blue-700">✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="border border-slate-200 rounded-lg overflow-hidden max-h-52 overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 sticky top-0">
@@ -136,34 +330,49 @@ function CreateTournamentModal({ onClose, onSave }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((o, i) => (
-                      <tr
-                        key={o.id}
-                        onClick={() => toggleOwner(o)}
-                        className={`border-t border-slate-100 cursor-pointer transition-colors ${selectedOwners.find(s => s.id === o.id) ? "bg-blue-50" : "hover:bg-slate-50"}`}
-                      >
-                        <td className="px-3 py-2.5 text-slate-400">{i + 1}</td>
-                        <td className="px-3 py-2.5">
-                          <p className="text-slate-700 font-medium">{o.name}</p>
-                          <p className="text-slate-400 text-xs">{o.city}</p>
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          <input type="checkbox" readOnly checked={!!selectedOwners.find(s => s.id === o.id)} className="accent-[#0ea5e9]" />
+                    {owners.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="px-3 py-4 text-center text-slate-400 text-xs">
+                          No owners found
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      owners.map((o, i) => (
+                        <tr
+                          key={o._id}
+                          onClick={() => toggleOwner(o)}
+                          className={`border-t border-slate-100 cursor-pointer transition-colors
+                            ${selectedOwners.find(s => s._id === o._id) ? "bg-blue-50" : "hover:bg-slate-50"}`}
+                        >
+                          <td className="px-3 py-2.5 text-slate-400">{i + 1}</td>
+                          <td className="px-3 py-2.5">
+                            <p className="text-slate-700 font-medium">{o.name}</p>
+                            <p className="text-slate-400 text-xs">{o.city}</p>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <input
+                              type="checkbox"
+                              readOnly
+                              checked={!!selectedOwners.find(s => s._id === o._id)}
+                              className="accent-[#0ea5e9]"
+                            />
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
 
+          {/* Footer */}
           <div className="px-6 py-4 border-t border-slate-100">
             <button
-              onClick={() => { onSave({ ...form, owners: selectedOwners }); onClose(); }}
+              onClick={handleSubmit}
               className="w-full bg-[#0ea5e9] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#0284c7] transition-colors"
             >
-              Create Tournament
+              {initial ? "Update Tournament" : "Create Tournament"}
             </button>
           </div>
         </div>
@@ -173,39 +382,66 @@ function CreateTournamentModal({ onClose, onSave }) {
 }
 
 export default function TournamentsPage() {
-  const [tournaments, setTournaments] = useState([
-    { id: 1, name: "Etihad Piegion One day Tournament", club: "Warraichan wala cup", startDate: "17/04/2026", pigeons: 7, lofts: 19, screen: "Off" },
-    { id: 2, name: "Ashfaq gagi mamoryal warichanwalla", club: "Ashfaq Gaigi Memorial Cup warraichan wala", startDate: "24/04/2026", pigeons: 9, lofts: 70, screen: "On" },
-  ]);
   const [showModal, setShowModal] = useState(false);
+  const [editItem,  setEditItem]  = useState(null);
 
-  const handleSave = (data) => {
-    setTournaments([...tournaments, {
-      id: Date.now(),
-      name: data.name,
-      club: data.club,
-      startDate: data.startDate,
-      pigeons: data.pigeons,
-      lofts: 0,
-      screen: data.screen === "On Screen" ? "On" : "Off",
-      poster: data.posterPreview,
-    }]);
+  const { data, isLoading }                         = useGetTournamentsQuery();
+  const [createTournament, { isLoading: creating }] = useCreateTournamentMutation();
+  const [updateTournament, { isLoading: updating }] = useUpdateTournamentMutation();
+  const [deleteTournament, { isLoading: deleting }] = useDeleteTournamentMutation();
+  const [toggleScreen,     { isLoading: toggling }] = useToggleScreenMutation();
+
+  const tournaments = data?.data || [];
+
+  const handleSave = async (formData) => {
+    try {
+      if (editItem) {
+        await updateTournament({ id: editItem._id, formData }).unwrap();
+        toast.success("Tournament updated!");
+      } else {
+        await createTournament(formData).unwrap();
+        toast.success("Tournament created!");
+      }
+      setEditItem(null);
+    } catch (err) {
+      toast.error(err?.data?.message || "Something went wrong!");
+    }
   };
 
-  const handleDelete = (id) => {
-    setTournaments(tournaments.filter(t => t.id !== id));
+  const handleDelete = async (id) => {
+    try {
+      await deleteTournament(id).unwrap();
+      toast.success("Tournament deleted!");
+    } catch (err) {
+      toast.error(err?.data?.message || "Delete failed!");
+    }
+  };
+
+  const handleToggleScreen = async (id) => {
+    try {
+      await toggleScreen(id).unwrap();
+      toast.success("Screen toggled!");
+    } catch (err) {
+      toast.error(err?.data?.message || "Toggle failed!");
+    }
   };
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" />
+
       {showModal && (
-        <CreateTournamentModal onClose={() => setShowModal(false)} onSave={handleSave} />
+        <CreateTournamentModal
+          onClose={() => { setShowModal(false); setEditItem(null); }}
+          onSave={handleSave}
+          initial={editItem}
+        />
       )}
 
       <div className="flex items-center justify-between">
         <h2 className="text-slate-800 font-bold text-xl">List of Tournaments</h2>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => { setEditItem(null); setShowModal(true); }}
           className="bg-[#0ea5e9] text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-[#0284c7] transition-colors"
         >
           Create New Tournament
@@ -213,66 +449,94 @@ export default function TournamentsPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-4 py-3 text-left text-slate-500 font-medium w-10">#</th>
-                <th className="px-4 py-3 text-left text-slate-500 font-medium">Poster</th>
-                <th className="px-4 py-3 text-left text-slate-500 font-medium">Name</th>
-                <th className="px-4 py-3 text-left text-slate-500 font-medium">Club</th>
-                <th className="px-4 py-3 text-center text-slate-500 font-medium">Start Date</th>
-                <th className="px-4 py-3 text-center text-slate-500 font-medium">Pigeons</th>
-                <th className="px-4 py-3 text-center text-slate-500 font-medium">Lofts</th>
-                <th className="px-4 py-3 text-center text-slate-500 font-medium">Options</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tournaments.map((t, i) => (
-                <tr key={t.id} className="border-t border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-4 text-slate-400">{i + 1}</td>
-                  <td className="px-4 py-4">
-                    <div className="w-16 h-20 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
-                      {t.poster
-                        ? <img src={t.poster} alt="poster" className="w-full h-full object-cover" />
-                        : <FaTrophy size={20} className="text-slate-300" />
-                      }
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-slate-700 font-medium max-w-[160px]">{t.name}</td>
-                  <td className="px-4 py-4">
-                    <div>
-                      <p className="text-slate-600 text-xs">{t.club}</p>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded mt-1 inline-block
-                        ${t.screen === "On" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
-                        Screen: {t.screen}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-center text-slate-500">{t.startDate}</td>
-                  <td className="px-4 py-4 text-center text-slate-600">{t.pigeons}</td>
-                  <td className="px-4 py-4 text-center text-slate-600">{t.lofts}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-col gap-1.5 items-center">
-                      <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-amber-50 text-amber-500 hover:bg-amber-100 text-xs font-medium w-full justify-center">
-                        <MdEdit size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(t.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs font-medium w-full justify-center"
-                      >
-                        <MdDelete size={14} /> Delete
-                      </button>
-                      <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium w-full justify-center">
-                        Result
-                      </button>
-                    </div>
-                  </td>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <div className="w-8 h-8 border-4 border-t-transparent border-[#122654] rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-4 py-3 text-left text-slate-500 font-medium w-10">#</th>
+                  <th className="px-4 py-3 text-left text-slate-500 font-medium">Poster</th>
+                  <th className="px-4 py-3 text-left text-slate-500 font-medium">Name</th>
+                  <th className="px-4 py-3 text-left text-slate-500 font-medium">Club</th>
+                  <th className="px-4 py-3 text-center text-slate-500 font-medium">Start Date</th>
+                  <th className="px-4 py-3 text-center text-slate-500 font-medium">Pigeons</th>
+                  <th className="px-4 py-3 text-center text-slate-500 font-medium">Lofts</th>
+                  <th className="px-4 py-3 text-center text-slate-500 font-medium">Options</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {tournaments.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-10 text-center text-slate-400 text-sm">
+                      No tournaments yet. Click "Create New Tournament" to add.
+                    </td>
+                  </tr>
+                ) : (
+                  tournaments.map((t, i) => (
+                    <tr key={t._id} className="border-t border-slate-100 hover:bg-slate-50">
+                      <td className="px-4 py-4 text-slate-400">{i + 1}</td>
+                      <td className="px-4 py-4">
+                        <div className="w-14 h-16 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+                          {t.posterUrl
+                            ? <img src={t.posterUrl} alt="poster" className="w-full h-full object-cover" />
+                            : <FaTrophy size={20} className="text-slate-300" />
+                          }
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-slate-700 font-medium max-w-[160px]">
+                        <p className="truncate">{t.name}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-slate-500 text-xs mb-1">{t.club?.name || "—"}</p>
+                        <button
+                          onClick={() => handleToggleScreen(t._id)}
+                          disabled={toggling}
+                          className={`text-xs font-semibold px-2 py-0.5 rounded cursor-pointer transition-colors
+                            ${t.screen === "On Screen"
+                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              : "bg-red-100 text-red-600 hover:bg-red-200"
+                            }`}
+                        >
+                          Screen: {t.screen === "On Screen" ? "On" : "Off"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-4 text-center text-slate-500">
+                        {t.startDate ? new Date(t.startDate).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="px-4 py-4 text-center text-slate-600">{t.pigeons}</td>
+                      <td className="px-4 py-4 text-center text-slate-600">{t.lofts}</td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-col gap-1.5">
+                          <button
+                            onClick={() => { setEditItem(t); setShowModal(true); }}
+                            disabled={updating}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-amber-50 text-amber-500 hover:bg-amber-100 text-xs font-medium justify-center"
+                          >
+                            <MdEdit size={14} /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(t._id)}
+                            disabled={deleting}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs font-medium justify-center"
+                          >
+                            <MdDelete size={14} /> Delete
+                          </button>
+                          <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center">
+                            Result
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

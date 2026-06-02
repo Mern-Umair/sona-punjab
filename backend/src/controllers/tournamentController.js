@@ -88,21 +88,30 @@ export const createTournament = async (req, res) => {
     name, club, startDate, startTime,
     days, continueDays, pigeons, helperPigeons,
     prizes, screen, subadmins, owners,
+    dates, prizeDetails,
   } = req.body;
 
   if (!name) return errorResponse(res, "Tournament name required", 400);
 
-  // Generate tournament days array
-  const tournamentDays = [];
-  if (startDate && days) {
-    const start = new Date(startDate);
-    const interval = continueDays ? parseInt(continueDays) : 2;
-    for (let i = 0; i < parseInt(days); i++) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i * interval);
-      tournamentDays.push({ date, results: [], landed: 0, remaining: parseInt(pigeons) || 0 });
-    }
+  // Parse dates array
+  let parsedDates = [];
+  if (dates) {
+    parsedDates = JSON.parse(dates).filter(d => d);
   }
+
+  // Parse prize details
+  let parsedPrizes = [];
+  if (prizeDetails) {
+    parsedPrizes = JSON.parse(prizeDetails).filter(p => p);
+  }
+
+  // Generate tournament days
+  const tournamentDays = parsedDates.map(date => ({
+    date:      new Date(date),
+    results:   [],
+    landed:    0,
+    remaining: parseInt(pigeons) || 0,
+  }));
 
   const tournament = await Tournament.create({
     name,
@@ -116,6 +125,8 @@ export const createTournament = async (req, res) => {
     pigeons:       parseInt(pigeons)       || 0,
     helperPigeons: parseInt(helperPigeons) || 0,
     prizes:        parseInt(prizes)        || 0,
+    prizeDetails:  parsedPrizes,
+    dates:         parsedDates,
     screen:        screen        || "Off Screen",
     subadmins:     subadmins     ? JSON.parse(subadmins) : [],
     owners:        owners        ? JSON.parse(owners)    : [],
@@ -126,7 +137,6 @@ export const createTournament = async (req, res) => {
   const populated = await tournament.populate("club", "name");
   successResponse(res, populated, "Tournament created", 201);
 };
-
 // @PUT /api/tournaments/:id
 export const updateTournament = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id);
