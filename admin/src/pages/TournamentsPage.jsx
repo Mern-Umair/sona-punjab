@@ -14,29 +14,29 @@ import toast, { Toaster } from "react-hot-toast";
 
 function CreateTournamentModal({ onClose, onSave, initial }) {
   const [form, setForm] = useState({
-    name:          initial?.name          || "",
-    startDate:     initial?.startDate ? new Date(initial.startDate).toISOString().split("T")[0] : "",
-    startTime:     initial?.startTime     || "",
-    days:          initial?.days          || "",
-    continueDays:  initial?.continueDays  || "",
-    pigeons:       initial?.pigeons       || "",
+    name: initial?.name || "",
+    startDate: initial?.startDate ? new Date(initial.startDate).toISOString().split("T")[0] : "",
+    startTime: initial?.startTime || "",
+    days: initial?.days || "",
+    continueDays: initial?.continueDays || "",
+    pigeons: initial?.pigeons || "",
     helperPigeons: initial?.helperPigeons || "",
-    prizes:        initial?.prizes        || "",
-    screen:        initial?.screen        || "Off Screen",
-    club:          initial?.club?._id     || "",
-    poster:        null,
-    posterPreview: initial?.posterUrl     || null,
+    prizes: initial?.prizes || "",
+    screen: initial?.screen || "Off Screen",
+    club: initial?.club?._id || "",
+    poster: null,
+    posterPreview: initial?.posterUrl || null,
   });
 
-  const [dates,          setDates]          = useState(initial?.dates?.map(d => d.split("T")[0]) || []);
-  const [prizeDetails,   setPrizeDetails]   = useState(initial?.prizeDetails || []);
-  const [search,         setSearch]         = useState("");
+  const [dates, setDates] = useState(initial?.dates?.map(d => d.split("T")[0]) || []);
+  const [prizeDetails, setPrizeDetails] = useState(initial?.prizeDetails || []);
+  const [search, setSearch] = useState("");
   const [selectedOwners, setSelectedOwners] = useState(initial?.owners || []);
 
-  const { data: clubsData }  = useGetClubsQuery();
+  const { data: clubsData } = useGetClubsQuery();
   const { data: ownersData } = useGetOwnersQuery(search);
 
-  const clubs  = clubsData?.data  || [];
+  const clubs = clubsData?.data || [];
   const owners = ownersData?.data || [];
 
   const handleDaysChange = (val) => {
@@ -79,19 +79,19 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
       return;
     }
     const formData = new FormData();
-    formData.set("name",          form.name);
-    formData.set("startDate",     form.startDate);
-    formData.set("startTime",     form.startTime);
-    formData.set("days",          form.days);
-    formData.set("continueDays",  form.continueDays);
-    formData.set("pigeons",       form.pigeons);
+    formData.set("name", form.name);
+    formData.set("startDate", form.startDate);
+    formData.set("startTime", form.startTime);
+    formData.set("days", form.days);
+    formData.set("continueDays", form.continueDays);
+    formData.set("pigeons", form.pigeons);
     formData.set("helperPigeons", form.helperPigeons);
-    formData.set("prizes",        form.prizes);
-    formData.set("screen",        form.screen);
-    formData.set("club",          form.club);
-    formData.set("dates",         JSON.stringify(dates));
-    formData.set("prizeDetails",  JSON.stringify(prizeDetails));
-    formData.set("owners",        JSON.stringify(selectedOwners.map(o => o._id)));
+    formData.set("prizes", form.prizes);
+    formData.set("screen", form.screen);
+    formData.set("club", form.club);
+    formData.set("dates", JSON.stringify(dates));
+    formData.set("prizeDetails", JSON.stringify(prizeDetails));
+    formData.set("owners", JSON.stringify(selectedOwners.map(o => o._id)));
     if (form.poster) formData.set("poster", form.poster);
     onSave(formData);
     onClose();
@@ -99,7 +99,7 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-      <div className="min-h-screen flex items-start justify-center px-4 py-8">
+      <div className="min-h-screen flex items-start justify-center px-4 py-8 mt-8">
         <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl">
 
           {/* Header */}
@@ -115,7 +115,7 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
             {/* Poster */}
             <div className="flex flex-col items-center">
               <p className="text-slate-600 text-sm font-medium mb-2">Tournament Poster</p>
-              <label className="w-44 h-52 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-[#122654] transition-colors overflow-hidden flex items-center justify-center">
+              <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-[#122654] transition-colors overflow-hidden flex items-center justify-center">
                 {form.posterPreview
                   ? <img src={form.posterPreview} alt="poster" className="w-full h-full object-cover" />
                   : <MdAdd size={36} className="text-slate-300" />
@@ -367,10 +367,10 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-slate-100">
+          <div className="px-6 py-4 border-t border-slate-100 flex justify-center">
             <button
               onClick={handleSubmit}
-              className="w-full bg-[#0ea5e9] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#0284c7] transition-colors"
+              className="w-48 bg-[#0ea5e9] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#0284c7] transition-colors"
             >
               {initial ? "Update Tournament" : "Create Tournament"}
             </button>
@@ -383,13 +383,13 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
 
 export default function TournamentsPage() {
   const [showModal, setShowModal] = useState(false);
-  const [editItem,  setEditItem]  = useState(null);
+  const [editItem, setEditItem] = useState(null);
 
-  const { data, isLoading }                         = useGetTournamentsQuery();
+  const { data, isLoading } = useGetTournamentsQuery();
   const [createTournament, { isLoading: creating }] = useCreateTournamentMutation();
   const [updateTournament, { isLoading: updating }] = useUpdateTournamentMutation();
   const [deleteTournament, { isLoading: deleting }] = useDeleteTournamentMutation();
-  const [toggleScreen,     { isLoading: toggling }] = useToggleScreenMutation();
+  const [toggleScreen, { isLoading: toggling }] = useToggleScreenMutation();
 
   const tournaments = data?.data || [];
 
@@ -465,7 +465,7 @@ export default function TournamentsPage() {
                   <th className="px-4 py-3 text-center text-slate-500 font-medium">Start Date</th>
                   <th className="px-4 py-3 text-center text-slate-500 font-medium">Pigeons</th>
                   <th className="px-4 py-3 text-center text-slate-500 font-medium">Lofts</th>
-                  <th className="px-4 py-3 text-center text-slate-500 font-medium">Options</th>
+                  <th className="px-4 py-3 text-center text-slate-500 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -516,14 +516,14 @@ export default function TournamentsPage() {
                             disabled={updating}
                             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-amber-50 text-amber-500 hover:bg-amber-100 text-xs font-medium justify-center"
                           >
-                            <MdEdit size={14} /> Edit
+                            <MdEdit size={14} />
                           </button>
                           <button
                             onClick={() => handleDelete(t._id)}
                             disabled={deleting}
                             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs font-medium justify-center"
                           >
-                            <MdDelete size={14} /> Delete
+                            <MdDelete size={14} />
                           </button>
                           <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center">
                             Result

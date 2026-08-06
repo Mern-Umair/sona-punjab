@@ -118,7 +118,7 @@ export default function ClubPage() {
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="px-4 py-3 text-left text-slate-500 font-medium w-12">#</th>
                 <th className="px-4 py-3 text-left text-slate-500 font-medium">Club name</th>
-                <th className="px-4 py-3 text-right text-slate-500 font-medium">Options</th>
+                <th className="px-6 py-3 text-right text-slate-500 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -140,14 +140,14 @@ export default function ClubPage() {
                           disabled={updating}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-amber-50 text-amber-500 hover:bg-amber-100 text-xs font-medium transition-colors"
                         >
-                          <MdEdit size={14} /> Edit
+                          <MdEdit size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(c._id)}
                           disabled={deleting}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs font-medium transition-colors"
                         >
-                          <MdDelete size={14} /> Delete
+                          <MdDelete size={14} />
                         </button>
                       </div>
                     </td>

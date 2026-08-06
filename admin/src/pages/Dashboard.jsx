@@ -4,14 +4,38 @@ import { useGetTournamentsQuery } from "../../redux/api/tournamentApi";
 import { useGetOwnersQuery } from "../../redux/api/ownerApi";
 import { useGetSubAdminsQuery } from "../../redux/api/subAdminApi";
 
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-xl p-5 border border-slate-200 animate-pulse">
+      <div className="w-10 h-10 rounded-lg bg-slate-200 mb-3" />
+      <div className="h-7 w-16 bg-slate-200 rounded mb-2" />
+      <div className="h-4 w-28 bg-slate-200 rounded" />
+    </div>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <div className="flex items-center justify-between px-5 py-3 animate-pulse">
+      <div className="space-y-2">
+        <div className="h-4 w-48 bg-slate-200 rounded" />
+        <div className="h-3 w-32 bg-slate-200 rounded" />
+      </div>
+      <div className="h-6 w-16 bg-slate-200 rounded-full" />
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const { data: tournamentsData } = useGetTournamentsQuery();
-  const { data: ownersData } = useGetOwnersQuery("");
-  const { data: subAdminsData } = useGetSubAdminsQuery();
+  const { data: tournamentsData, isLoading: tLoading } = useGetTournamentsQuery();
+  const { data: ownersData, isLoading: oLoading } = useGetOwnersQuery("");
+  const { data: subAdminsData, isLoading: sLoading } = useGetSubAdminsQuery();
 
   const tournaments = tournamentsData?.data || [];
   const owners = ownersData?.data || [];
   const subAdmins = subAdminsData?.data || [];
+
+  const statsLoading = tLoading || oLoading || sLoading;
 
   const stats = [
     { icon: <FaTrophy size={24} />, label: "Total Tournaments", value: tournaments.length, bg: "bg-blue-50", text: "text-blue-600" },
@@ -29,15 +53,23 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {stats.map((s, i) => (
-          <div key={i} className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-md transition-shadow">
-            <div className={`w-10 h-10 rounded-lg ${s.bg} ${s.text} flex items-center justify-center mb-3`}>
-              {s.icon}
+        {statsLoading ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          stats.map((s, i) => (
+            <div key={i} className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-md transition-shadow">
+              <div className={`w-10 h-10 rounded-lg ${s.bg} ${s.text} flex items-center justify-center mb-3`}>
+                {s.icon}
+              </div>
+              <p className="font-bold text-2xl text-[#122654]">{s.value}</p>
+              <p className="text-slate-500 text-sm mt-0.5">{s.label}</p>
             </div>
-            <p className="font-bold text-2xl text-[#122654]">{s.value}</p>
-            <p className="text-slate-500 text-sm mt-0.5">{s.label}</p>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Recent Tournaments */}
@@ -46,7 +78,13 @@ export default function Dashboard() {
           <h3 className="text-white font-bold text-base">Recent Tournaments</h3>
         </div>
         <div className="divide-y divide-slate-100">
-          {recentTournaments.length === 0 ? (
+          {tLoading ? (
+            <>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </>
+          ) : recentTournaments.length === 0 ? (
             <p className="text-slate-400 text-sm text-center py-8">No tournaments yet.</p>
           ) : (
             recentTournaments.map((t) => (

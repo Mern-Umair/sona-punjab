@@ -32,7 +32,7 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-      <div className="min-h-screen flex items-start justify-center px-4 py-8">
+      <div className="min-h-screen flex items-start justify-center px-4 py-8 mt-8">
         <div className="bg-white rounded-xl w-full max-w-xl shadow-xl">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
             <h3 className="text-slate-800 font-bold text-lg">
@@ -103,10 +103,10 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
             ))}
           </div>
 
-          <div className="px-6 py-4 border-t border-slate-100">
+          <div className="px-6 py-4 border-t border-slate-100 flex justify-center">
             <button
               onClick={handleSubmit}
-              className="w-full bg-[#0ea5e9] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#0284c7] transition-colors"
+              className="w-48 bg-[#0ea5e9] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#0284c7] transition-colors"
             >
               Submit
             </button>
@@ -194,7 +194,7 @@ export default function SubAdminPage() {
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Phone</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Password</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Role</th>
-                  <th className="px-4 py-3 text-center text-slate-500 font-medium">Options</th>
+                  <th className="px-4 py-3 text-right text-slate-500 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -211,32 +211,32 @@ export default function SubAdminPage() {
                       <td className="px-4 py-4 text-slate-700 font-medium">{a.username}</td>
                       <td className="px-4 py-4 text-slate-500">{a.phone || "—"}</td>
                       <td className="px-4 py-4 text-slate-500">••••••••</td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 text-left">
                         <span className={`text-xs font-bold ${a.role === "admin" ? "text-green-600" : "text-amber-500"}`}>
                           {a.role}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col gap-1.5 items-center">
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handleCopy(a.username)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium w-full justify-center"
+                            className="flex gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center"
                           >
-                            <MdContentCopy size={14} /> Copy
+                            <MdContentCopy size={14} />
                           </button>
                           <button
                             onClick={() => { setEditItem(a); setShowModal(true); }}
                             disabled={updating}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-amber-50 text-amber-500 hover:bg-amber-100 text-xs font-medium w-full justify-center"
+                            className="flex gap-1 px-3 py-1.5 rounded-md bg-amber-50 text-amber-500 hover:bg-amber-100 text-xs font-medium  justify-center"
                           >
-                            <MdEdit size={14} /> Edit
+                            <MdEdit size={14} />
                           </button>
                           <button
                             onClick={() => handleDelete(a._id)}
                             disabled={deleting}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs font-medium w-full justify-center"
+                            className="flex gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs font-medium justify-center"
                           >
-                            <MdDelete size={14} /> Delete
+                            <MdDelete size={14} />
                           </button>
                         </div>
                       </td>
