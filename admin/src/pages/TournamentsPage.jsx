@@ -510,7 +510,7 @@ export default function TournamentsPage() {
                       <td className="px-4 py-4 text-center text-slate-600">{t.pigeons}</td>
                       <td className="px-4 py-4 text-center text-slate-600">{t.lofts}</td>
                       <td className="px-4 py-4">
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => { setEditItem(t); setShowModal(true); }}
                             disabled={updating}

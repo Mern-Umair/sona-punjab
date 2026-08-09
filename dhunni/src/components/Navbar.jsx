@@ -1,35 +1,27 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-
-const navLinks = [
-  { label: "Home", to: "/" },
-  { label: "السادات پیجن کلب دُھنی", to: "/results/c1" },
-  { label: "السادات پیجن کلب گریس ایتھنز", to: "/results/c59" },
-  { label: "Pir", to: "/results/c64" },
-  { label: "Oslorenawkb ODI Dhani", to: "/results/c63" },
-  { label: "Pigeon Tournament Abiyal", to: "/results/c61" },
-  { label: "Weather", to: "/weather" },
-];
+import { useGetTournamentsQuery } from "../../redux/api/tournamentApi";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
 
+  const { data } = useGetTournamentsQuery();
+  const tournaments = data?.data || [];
+
+  const navLinks = [
+    { label: "Home", to: "/" },
+    ...[...tournaments]
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+      .map(t => ({
+        label: t.name,
+        to: `/results/${t._id}`,
+      })),
+  ];  
+
   return (
     <header className="bg-white border-b border-gray sticky top-0 z-50 shadow-sm">
 
-      {/* Top navy bar */}
-      <div className="bg-navy py-1.5 px-4 flex items-center justify-between">
-        <p className="text-white text-xs font-sans">
-          🕊️ Sona Punjab — Pigeon Tournaments
-        </p>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-          <span className="text-white text-xs font-sans">
-            Online: <strong className="text-gold">476</strong>
-          </span>
-        </div>
-      </div>
 
       {/* Main navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

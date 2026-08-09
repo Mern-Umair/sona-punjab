@@ -1,4 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+
 import { MdDashboard, MdImage, MdTitle, MdGroups, MdLogout } from "react-icons/md";
 import { FaTrophy, FaDove, FaUserShield } from "react-icons/fa";
 
@@ -15,6 +17,11 @@ const links = [
 export default function Sidebar({ open, onClose }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  const user = useSelector(state => state.auth.user);
+  const filteredLinks = user?.role === "admin" 
+    ? links 
+    : links.filter(link => link.to !== "/subadmin");
 
   const logout = () => {
     localStorage.removeItem("admin_token");
@@ -56,7 +63,7 @@ export default function Sidebar({ open, onClose }) {
 
         {/* Nav */}
         <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2 overflow-y-auto">
-          {links.map((link) => (
+          {filteredLinks.map((link) => (
             link.href ? (
               <button
                 key={link.href}
