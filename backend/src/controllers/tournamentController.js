@@ -7,14 +7,15 @@ export const getTournaments = async (req, res) => {
   const { club, status, screen } = req.query;
 
   const query = {};
-  if (club)   query.club   = club;
+  if (club) query.club = club;
   if (status) query.status = status;
   if (screen) query.screen = screen;
 
   const tournaments = await Tournament.find(query)
     .populate("club", "name")
-    .populate("owners", "name city imageUrl")
+    .populate("owners", "name city imageUrl phone")
     .populate("subadmins", "username role")
+    .populate("owners", "name city imageUrl phone")
     .sort({ createdAt: -1 });
 
   successResponse(res, tournaments);
@@ -26,7 +27,7 @@ export const getTournament = async (req, res) => {
     .populate("club", "name")
     .populate("owners", "name city imageUrl phone")
     .populate("subadmins", "username role")
-    .populate("tournamentDays.results.owner", "name city imageUrl")
+    .populate("tournamentDays.results.owner", "name city imageUrl phone")
     .populate("totalResults.owner", "name city imageUrl");
 
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
@@ -50,12 +51,12 @@ export const getTournamentByDay = async (req, res) => {
 
   successResponse(res, {
     tournament: {
-      _id:       tournament._id,
-      name:      tournament.name,
-      club:      tournament.club,
+      _id: tournament._id,
+      name: tournament.name,
+      club: tournament.club,
       startTime: tournament.startTime,
-      lofts:     tournament.lofts,
-      pigeons:   tournament.pigeons,
+      lofts: tournament.lofts,
+      pigeons: tournament.pigeons,
     },
     day,
   });
@@ -71,12 +72,12 @@ export const getTournamentTotal = async (req, res) => {
 
   successResponse(res, {
     tournament: {
-      _id:       tournament._id,
-      name:      tournament.name,
-      club:      tournament.club,
+      _id: tournament._id,
+      name: tournament.name,
+      club: tournament.club,
       startTime: tournament.startTime,
-      lofts:     tournament.lofts,
-      pigeons:   tournament.pigeons,
+      lofts: tournament.lofts,
+      pigeons: tournament.pigeons,
     },
     totalResults: tournament.totalResults,
   });
@@ -107,31 +108,31 @@ export const createTournament = async (req, res) => {
 
   // Generate tournament days
   const tournamentDays = parsedDates.map(date => ({
-    date:      new Date(date),
-    results:   [],
-    landed:    0,
+    date: new Date(date),
+    results: [],
+    landed: 0,
     remaining: parseInt(pigeons) || 0,
   }));
 
   const tournament = await Tournament.create({
     name,
-    club:          club          || null,
-    posterUrl:     req.file?.location || "",
-    posterKey:     req.file?.key      || "",
-    startDate:     startDate     || null,
-    startTime:     startTime     || "",
-    days:          parseInt(days)          || 1,
-    continueDays:  parseInt(continueDays)  || 0,
-    pigeons:       parseInt(pigeons)       || 0,
+    club: club || null,
+    posterUrl: req.file?.location || "",
+    posterKey: req.file?.key || "",
+    startDate: startDate || null,
+    startTime: startTime || "",
+    days: parseInt(days) || 1,
+    continueDays: parseInt(continueDays) || 0,
+    pigeons: parseInt(pigeons) || 0,
     helperPigeons: parseInt(helperPigeons) || 0,
-    prizes:        parseInt(prizes)        || 0,
-    prizeDetails:  parsedPrizes,
-    dates:         parsedDates,
-    screen:        screen        || "Off Screen",
-    subadmins:     subadmins     ? JSON.parse(subadmins) : [],
-    owners:        owners        ? JSON.parse(owners)    : [],
+    prizes: parseInt(prizes) || 0,
+    prizeDetails: parsedPrizes,
+    dates: parsedDates,
+    screen: screen || "Off Screen",
+    subadmins: subadmins ? JSON.parse(subadmins) : [],
+    owners: owners ? JSON.parse(owners) : [],
     tournamentDays,
-    status:        "upcoming",
+    status: "upcoming",
   });
 
   const populated = await tournament.populate("club", "name");
@@ -153,12 +154,29 @@ export const updateTournament = async (req, res) => {
     "continueDays", "pigeons", "helperPigeons", "prizes", "screen", "status"
   ];
 
+  // Dates update
+  if (req.body.dates) {
+    const parsedDates = JSON.parse(req.body.dates).filter(d => d);
+    tournament.dates = parsedDates;
+    tournament.tournamentDays = parsedDates.map(date => ({
+      date: new Date(date),
+      results: [],
+      landed: 0,
+      remaining: parseInt(req.body.pigeons || tournament.pigeons) || 0,
+    }));
+  }
+
+  // Prize details update
+  if (req.body.prizeDetails) {
+    tournament.prizeDetails = JSON.parse(req.body.prizeDetails).filter(p => p);
+  }
+
   fields.forEach(f => {
     if (req.body[f] !== undefined) tournament[f] = req.body[f];
   });
 
   if (req.body.subadmins) tournament.subadmins = JSON.parse(req.body.subadmins);
-  if (req.body.owners)    tournament.owners    = JSON.parse(req.body.owners);
+  if (req.body.owners) tournament.owners = JSON.parse(req.body.owners);
 
   await tournament.save();
 
@@ -189,16 +207,16 @@ export const addDayResults = async (req, res) => {
 
   if (dayIndex === -1) return errorResponse(res, "Date not found", 404);
 
-  tournament.tournamentDays[dayIndex].results     = results     || [];
-  tournament.tournamentDays[dayIndex].landed      = landed      || 0;
-  tournament.tournamentDays[dayIndex].remaining   = remaining   || 0;
-  tournament.tournamentDays[dayIndex].winnerTime  = winnerTime  || "";
+  tournament.tournamentDays[dayIndex].results = results || [];
+  tournament.tournamentDays[dayIndex].landed = landed || 0;
+  tournament.tournamentDays[dayIndex].remaining = remaining || 0;
+  tournament.tournamentDays[dayIndex].winnerTime = winnerTime || "";
   tournament.tournamentDays[dayIndex].winnerOwner = winnerOwner || null;
 
   // Check if all days have results — update status
   const allDone = tournament.tournamentDays.every(d => d.results.length > 0);
   if (allDone) tournament.status = "done";
-  else         tournament.status = "live";
+  else tournament.status = "live";
 
   await tournament.save();
 
@@ -211,7 +229,7 @@ export const addTotalResults = async (req, res) => {
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
 
   tournament.totalResults = req.body.results || [];
-  tournament.status       = "done";
+  tournament.status = "done";
   await tournament.save();
 
   successResponse(res, tournament.totalResults, "Total results saved");

@@ -1,148 +1,276 @@
-const tournament = {
-    title: "ALSADAAT PIGEON CLUB DHUNI SADAAT ( 7 )ROZA TOURNAMINT INTRY FEES ( 15 ) HAZAAR",
-    startTime: "05:00",
-    stats: {
-      lofts: 39,
-      totalPigeons: 429,
-      landed: 366,
-      remaining: 63,
-      winnerTime: "18:32",
-      winnerName: "Ustad Mubasher Ali",
-    },
-    dates: [
-      "24.05.2026","26.05.2026","28.05.2026",
-      "30.05.2026","01.06.2026","03.06.2026","05.06.2026","Total"
-    ],
-    results: [
-      { rank: 1,  name: "Ch Tariq l langrial",           times: ["10:34","11:14","11:31","11:37","12:05","14:12","14:32","15:34","15:42","15:50","16:56"], total: "94:47" },
-      { rank: 2,  name: "Muhammad Aslam khatna - Majid", times: ["07:20","09:51","09:53","13:09","13:17","13:56","13:56","14:14","14:20","14:22","14:28"], total: "83:46" },
-      { rank: 3,  name: "Ustad Malik Arif Dhing",        times: ["09:12","10:43","10:57","12:28","12:46","14:34","14:52","14:52","14:53","15:48",""],      total: "81:05" },
-      { rank: 4,  name: "Pola butt & Ali Raza",          times: ["08:10","09:57","11:10","12:05","12:39","12:39","13:15","13:22","13:34","13:36","14:00"], total: "79:27" },
-      { rank: 5,  name: "Ustad Mian Abid mandeer",       times: ["07:02","07:17","11:46","11:49","11:50","12:05","12:34","13:45","13:47","15:05","15:47"], total: "77:47" },
-      { rank: 6,  name: "Ustad gulnaz Makwal",           times: ["08:08","09:54","12:42","14:26","14:41","14:48","14:58","16:15","16:41","",""],           total: "77:33" },
-      { rank: 7,  name: "Irfan ali sher Smaila",         times: ["13:22","13:45","14:18","14:30","14:32","14:32","15:36","15:36","","",""],                total: "76:11" },
-      { rank: 8,  name: "Ch karamat kotla",              times: ["06:40","07:00","07:01","11:06","12:03","12:07","12:20","13:54","15:18","16:12","16:13"], total: "74:54" },
-      { rank: 9,  name: "Ch Yasir plaza thapla",         times: ["07:55","07:59","09:52","10:12","10:29","11:12","13:12","13:22","13:41","13:41","14:52"], total: "71:27" },
-      { rank: 10, name: "Hafeez Butt Modal Town",        times: ["07:21","09:40","10:16","10:46","11:06","12:57","13:01","13:30","16:04","16:06",""],      total: "70:47" },
-    ],
-  };
-  
-  const medalColors = {
-    1: "bg-yellow-400 text-yellow-900",
-    2: "bg-gray-300 text-gray-800",
-    3: "bg-amber-600 text-white",
-  };
-  
-  export default function TournamentSection() {
-    return (
-      <section className="w-full px-2 sm:px-4 py-8">
-  
-        {/* Tournament Title */}
-        <div className="bg-navy rounded-t-xl px-4 sm:px-6 py-4">
-          <h2 className="text-white font-heading font-bold text-sm sm:text-base lg:text-lg text-center leading-snug">
-            {tournament.title}
-          </h2>
-          <p className="text-blue-200 text-xs text-center mt-1 font-sans">
-            Start time: {tournament.startTime}
-          </p>
+import { useState } from "react";
+import {
+  useGetTournamentsQuery,
+  useGetTournamentByDayQuery,
+  useGetTournamentTotalQuery,
+} from "../../redux/api/tournamentApi";
+
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+}
+
+function TournamentBlock({ tournament }) {
+  const dates = tournament.dates || [];
+  const [activeTab, setActiveTab] = useState(0);
+  const isTotal = activeTab === dates.length;
+
+  const selectedDate =
+    !isTotal && dates[activeTab]
+      ? new Date(dates[activeTab]).toISOString().split("T")[0]
+      : null;
+
+  const { data: dayData, isLoading: dayLoading } = useGetTournamentByDayQuery(
+    { id: tournament._id, date: selectedDate },
+    { skip: !selectedDate || isTotal }
+  );
+
+  const { data: totalData, isLoading: totalLoading } = useGetTournamentTotalQuery(
+    tournament._id,
+    { skip: !isTotal }
+  );
+
+  const dayResults = dayData?.data?.day?.results || [];
+  const totalResults = totalData?.data?.totalResults || [];
+  const dayStats = dayData?.data?.day || {};
+  const isLoading = dayLoading || totalLoading;
+
+  const results = isTotal ? totalResults : dayResults;
+  const pigeons = tournament.pigeons || 3;
+
+  // Stats
+  const landed = isTotal
+    ? (totalResults.reduce((acc, r) => acc + (r.times?.filter(Boolean).length || 0), 0))
+    : (dayStats.landed || 0);
+  const remaining = isTotal
+    ? Math.max(0, pigeons - landed)
+    : typeof dayStats.remaining === "number"
+      ? dayStats.remaining
+      : pigeons;
+
+  // First & Last winner from results
+  const firstWinner = results?.[0]?.owner?.name || "No results yet";
+  const lastWinner =
+    results?.length > 1
+      ? results[results.length - 1]?.owner?.name
+      : "No results yet";
+
+  // Total columns — for total tab show date columns
+  const totalDateCols = isTotal
+    ? dates.map((d) => formatDate(d))
+    : [];
+
+  return (
+    <section className="w-full mb-10">
+      {/* Title */}
+      <h2 className="text-navy font-heading font-bold text-2xl sm:text-3xl text-center py-5">
+        {tournament.name}
+      </h2>
+
+      {/* Date Tabs — centered, all in one line */}
+      <div className="flex justify-center items-center gap-2 flex-wrap px-4 pb-4">
+        {dates.map((date, i) => (
+          <button
+            key={i}
+            onClick={() => setActiveTab(i)}
+            className={`px-5 py-1.5 text-xs sm:text-sm font-sans font-medium rounded border-2 transition-colors
+              ${activeTab === i
+                ? "border-navy bg-white text-navy font-bold"
+                : "border-navy text-navy bg-white hover:bg-navypale"
+              }`}
+          >
+            {formatDate(date)}
+          </button>
+        ))}
+        <button
+          onClick={() => setActiveTab(dates.length)}
+          className={`px-5 py-1.5 text-xs sm:text-sm font-sans font-medium rounded border-2 transition-colors
+            ${isTotal
+              ? "border-navy bg-white text-navy font-bold"
+              : "border-navy text-navy bg-white hover:bg-navypale"
+            }`}
+        >
+          Total
+        </button>
+      </div>
+
+      {/* First & Last Winner — only for date tabs not total */}
+      {!isTotal && (
+        <div className="mx-4 mb-2 bg-yellow-50 border border-yellow-200 rounded px-4 py-2 text-xs sm:text-sm">
+          <span className="font-bold text-dark">First winner: </span>
+          <span className="text-navy">{firstWinner}</span>
+          <span className="mx-2 text-gray">|</span>
+          <span className="font-bold text-dark">Last winner: </span>
+          <span className="text-navy">{lastWinner}</span>
         </div>
-  
-        {/* Date Tabs */}
-        <div className="bg-white border-x border-gray overflow-x-auto">
-          <div className="flex min-w-max">
-            {tournament.dates.map((date, i) => (
-              <button
-                key={i}
-                className={`px-4 py-2.5 text-xs sm:text-sm font-sans font-medium whitespace-nowrap border-b-2 transition-colors
-                  ${i === 0
-                    ? "border-navy text-navy bg-navypale"
-                    : "border-transparent text-gray hover:text-navy hover:bg-navypale"
-                  }`}
-              >
-                {date}
-              </button>
-            ))}
-          </div>
-        </div>
-  
-        {/* Stats Bar */}
-        <div className="bg-navypale border-x border-gray px-4 py-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <div className="text-center">
-            <p className="text-gray text-[10px] sm:text-xs font-sans uppercase tracking-wide">Lofts</p>
-            <p className="text-navy font-bold text-lg sm:text-xl font-sans">{tournament.stats.lofts}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-gray text-[10px] sm:text-xs font-sans uppercase tracking-wide">Total Pigeons</p>
-            <p className="text-navy font-bold text-lg sm:text-xl font-sans">{tournament.stats.totalPigeons}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-gray text-[10px] sm:text-xs font-sans uppercase tracking-wide">Landed</p>
-            <p className="text-navy font-bold text-lg sm:text-xl font-sans">{tournament.stats.landed}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-gray text-[10px] sm:text-xs font-sans uppercase tracking-wide">Remaining</p>
-            <p className="text-navy font-bold text-lg sm:text-xl font-sans">{tournament.stats.remaining}</p>
-          </div>
-          <div className="text-center col-span-2 sm:col-span-3 lg:col-span-1">
-            <p className="text-gray text-[10px] sm:text-xs font-sans uppercase tracking-wide">Today's Winner</p>
-            <p className="text-gold font-bold text-sm sm:text-base font-sans">{tournament.stats.winnerTime}</p>
-            <p className="text-dark text-[10px] sm:text-xs font-sans truncate">{tournament.stats.winnerName}</p>
-          </div>
-        </div>
-  
-        {/* Results Table */}
-        <div className="bg-white border border-gray rounded-b-xl overflow-hidden">
-          <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[900px] text-xs sm:text-sm font-sans">
-              <thead>
-                <tr className="bg-navy text-white">
-                  <th className="px-3 py-3 text-left w-10">#</th>
-                  <th className="px-3 py-3 text-left min-w-[160px]">Name</th>
-                  {[1,2,3,4,5,6,7,8,9,10,11].map(n => (
-                    <th key={n} className="px-2 py-3 text-center min-w-[52px]">#{n}</th>
-                  ))}
-                  <th className="px-3 py-3 text-center min-w-[60px]">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tournament.results.map((row, i) => (
-                  <tr
-                    key={row.rank}
-                    className={`border-t border-gray transition-colors hover:bg-navypale
-                      ${i % 2 === 0 ? "bg-white" : "bg-light"}`}
-                  >
+      )}
+
+      {/* Stats Bar */}
+      <div className="mx-4 mb-0 bg-navy rounded-t px-4 py-2.5 flex flex-wrap gap-4 justify-center">
+        <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
+          Lofts: <span className="text-white">{tournament.lofts || tournament.owners?.length || 0}</span>
+        </span>
+        <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
+          Pigeons: <span className="text-white">{pigeons}</span>
+        </span>
+        <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
+          Landed: <span className="text-white">{landed}</span>
+        </span>
+        <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
+          Pigeons remaining: <span className="text-white">{remaining}</span>
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="mx-4 overflow-x-auto border border-gray border-t-0">
+        <table className="w-full text-xs sm:text-sm font-sans">
+          <thead>
+            <tr className="bg-light border-b border-gray">
+              <th className="px-3 py-3 text-left text-dark font-semibold w-10">Sr #</th>
+              <th className="px-3 py-3 text-left text-dark font-semibold">Picture</th>
+              <th className="px-3 py-3 text-left text-dark font-semibold">Name</th>
+              <th className="px-3 py-3 text-center text-dark font-semibold whitespace-nowrap">Flying time</th>
+              {isTotal
+                ? totalDateCols.map((col, i) => (
+                  <th key={i} className="px-3 py-3 text-center text-dark font-semibold whitespace-nowrap">{col}</th>
+                ))
+                : Array.from({ length: pigeons }).map((_, n) => (
+                  <th key={n} className="px-2 py-3 text-center text-dark font-semibold">#{n + 1}</th>
+                ))
+              }
+              <th className="px-3 py-3 text-center text-dark font-semibold">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan={pigeons + 5} className="text-center py-8">
+                  <div className="inline-block w-8 h-8 border-4 border-t-transparent border-navy rounded-full animate-spin" />
+                </td>
+              </tr>
+            ) : results.length === 0 ? (
+              tournament.owners?.length > 0 ? (
+                tournament.owners.map((owner, i) => (
+                  <tr key={i} className={`border-t border-gray ${i % 2 === 0 ? "bg-white" : "bg-light"}`}>
+                    <td className="px-3 py-3 text-center text-dark font-bold">{i + 1}</td>
                     <td className="px-3 py-3">
-                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
-                        ${medalColors[row.rank] || "bg-navypale text-navy"}`}>
-                        {row.rank}
-                      </span>
+                      {owner.imageUrl ? (
+                        <img src={owner.imageUrl} alt={owner.name} className="w-10 h-10 rounded-full object-cover border-2 border-gold" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-navypale border-2 border-gold flex items-center justify-center">
+                          <span className="text-navy text-sm font-bold">{owner.name?.charAt(0) || "?"}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-navypale border border-navy flex items-center justify-center shrink-0">
-                          <span className="text-navy text-xs font-bold">
-                            {row.name.charAt(0)}
-                          </span>
-                        </div>
-                        <span className="text-dark font-medium leading-tight line-clamp-2 max-w-[140px]">
-                          {row.name}
+                      <p className="text-navy font-semibold leading-tight">{owner.name || "—"}</p>
+                      {owner.phone && <p className="text-blue-500 text-[10px] underline">{owner.phone}</p>}
+                    </td>
+                    <td className="px-3 py-3 text-center text-gray">—</td>
+                    {Array.from({ length: pigeons }).map((_, ti) => (
+                      <td key={ti} className="px-2 py-3 text-center text-gray">—</td>
+                    ))}
+                    <td className="px-3 py-3 text-center text-gray">—</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={pigeons + 5} className="text-center py-6 text-gray text-sm">
+                    No results yet.
+                  </td>
+                </tr>
+              )
+            ) : (
+              results.map((row, i) => (
+                <tr
+                  key={i}
+                  className={`border-t border-gray ${i % 2 === 0 ? "bg-white" : "bg-light"}`}
+                >
+                  <td className="px-3 py-3 text-center text-dark font-bold">{i + 1}</td>
+                  {/* Picture */}
+                  <td className="px-3 py-3">
+                    {row.owner?.imageUrl ? (
+                      <img
+                        src={row.owner.imageUrl}
+                        alt={row.owner?.name}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-gold"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-navypale border-2 border-gold flex items-center justify-center">
+                        <span className="text-navy text-sm font-bold">
+                          {row.owner?.name?.charAt(0) || "?"}
                         </span>
                       </div>
-                    </td>
-                    {Array.from({ length: 11 }).map((_, ti) => (
+                    )}
+                  </td>
+                  {/* Name + Phone */}
+                  <td className="px-3 py-3">
+                    <p className="text-navy font-semibold leading-tight">{row.owner?.name || "—"}</p>
+                    {row.owner?.phone && (
+                      <p className="text-blue-500 text-[10px] underline">{row.owner.phone}</p>
+                    )}
+                  </td>
+                  {/* Flying time */}
+                  <td className="px-3 py-3 text-center text-dark font-semibold">
+                    {row.times?.[0] || "—"}
+                  </td>
+                  {/* Times columns */}
+                  {isTotal
+                    ? totalDateCols.map((_, ti) => (
                       <td key={ti} className="px-2 py-3 text-center text-gray">
-                        {row.times[ti] || "—"}
+                        {row.times?.[ti] || "—"}
                       </td>
-                    ))}
-                    <td className="px-3 py-3 text-center font-bold text-navy">
-                      {row.total}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+                    ))
+                    : Array.from({ length: pigeons }).map((_, ti) => (
+                      <td key={ti} className="px-2 py-3 text-center text-gray">
+                        {row.times?.[ti + 1] || "—"}
+                      </td>
+                    ))
+                  }
+                  {/* Total */}
+                  <td className="px-3 py-3 text-center font-bold text-navy">
+                    {row.total || "No Result"}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+export default function TournamentSection({ clubId }) {
+  const { data, isLoading } = useGetTournamentsQuery("?screen=On Screen");
+  const tournaments = data?.data || [];
+
+  const filtered = [...tournaments]
+    .filter((t) => (clubId ? t.club?._id === clubId : true))
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-t-transparent border-navy rounded-full animate-spin" />
+      </div>
     );
   }
+
+  if (filtered.length === 0) {
+    return (
+      <div className="text-center py-20 text-gray text-sm">
+        No tournaments available.
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-4">
+      {filtered.map((t) => (
+        <TournamentBlock key={t._id} tournament={t} />
+      ))}
+    </div>
+  );
+}
