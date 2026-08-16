@@ -167,7 +167,7 @@ function TournamentBlock({ tournament }) {
                       <p className="text-navy font-semibold leading-tight">{owner.name || "—"}</p>
                       {owner.phone && <p className="text-blue-500 text-[10px] underline">{owner.phone}</p>}
                     </td>
-                    <td className="px-3 py-3 text-center text-gray">—</td>
+                    <td className="px-3 py-3 text-center text-dark font-semibold">{tournament.startTime || "—"}</td>
                     {Array.from({ length: pigeons }).map((_, ti) => (
                       <td key={ti} className="px-2 py-3 text-center text-gray">—</td>
                     ))}

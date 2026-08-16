@@ -132,6 +132,7 @@ export const createTournament = async (req, res) => {
     subadmins: subadmins ? JSON.parse(subadmins) : [],
     owners: owners ? JSON.parse(owners) : [],
     tournamentDays,
+    lofts: owners ? JSON.parse(owners).length : 0,
     status: "upcoming",
   });
 
@@ -176,7 +177,10 @@ export const updateTournament = async (req, res) => {
   });
 
   if (req.body.subadmins) tournament.subadmins = JSON.parse(req.body.subadmins);
-  if (req.body.owners) tournament.owners = JSON.parse(req.body.owners);
+  if (req.body.owners) {
+    tournament.owners = JSON.parse(req.body.owners);
+    tournament.lofts = tournament.owners.length;
+  }
 
   await tournament.save();
 
