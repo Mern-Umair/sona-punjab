@@ -19,6 +19,12 @@ export default {
           border:    "#D1D5DB",
           dark:      "#111827",
         },
+        navy:     "#122654",
+        navypale: "#e8ecf5",
+        gold:     "#F5A623",
+        light:    "#F4F6FA",
+        gray:     "#6B7280",
+        dark:     "#111827",
       },
       fontFamily: {
         heading: ["'Playfair Display'", "serif"],

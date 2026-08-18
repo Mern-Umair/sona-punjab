@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 
 const resultSchema = new mongoose.Schema({
-  owner:  { type: mongoose.Schema.Types.ObjectId, ref: "PigeonOwner" },
-  rank:   { type: Number },
-  times:  [{ type: String }],
-  total:  { type: String },
+  owner:     { type: mongoose.Schema.Types.ObjectId, ref: "PigeonOwner" },
+  rank:      { type: Number },
+  startTime: { type: String, default: "" },
+  times:     [{ type: String }],
+  total:     { type: String },
 }, { _id: false });
 
 const tournamentDaySchema = new mongoose.Schema({

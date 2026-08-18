@@ -44,6 +44,14 @@ export const tournamentApi = createApi({
       query: (id) => ({ url: `/tournaments/${id}/screen`, method: "PUT" }),
       invalidatesTags: ["Tournament"],
     }),
+    saveOwnerDayResult: builder.mutation({
+      query: ({ id, date, ownerId, times, startTime }) => ({
+        url: `/tournaments/${id}/day/${date}/owner-result`,
+        method: "PUT",
+        body: { ownerId, times, startTime },
+      }),
+      invalidatesTags: ["Tournament"],
+    }),
     addDayResults: builder.mutation({
       query: ({ id, date, ...body }) => ({
         url: `/tournaments/${id}/results/${date}`,
@@ -72,6 +80,7 @@ export const {
   useUpdateTournamentMutation,
   useDeleteTournamentMutation,
   useToggleScreenMutation,
+  useSaveOwnerDayResultMutation,
   useAddDayResultsMutation,
   useAddTotalResultsMutation,
 } = tournamentApi;

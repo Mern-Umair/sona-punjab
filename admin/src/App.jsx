@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import TournamentsPage from "./pages/TournamentsPage";
+import CreateResultPage from "./pages/CreateResultPage";
 import BannersPage from "./pages/BannersPage";
 import HeadlinePage from "./pages/HeadlinePage";
 import ClubPage from "./pages/ClubPage";
@@ -49,6 +50,7 @@ export default function App() {
       <Route path="/headline" element={<ProtectedRoute><HeadlinePage /></ProtectedRoute>} />
       <Route path="/club" element={<ProtectedRoute><ClubPage /></ProtectedRoute>} />
       <Route path="/tournaments" element={<ProtectedRoute><TournamentsPage /></ProtectedRoute>} />
+      <Route path="/tournaments/:id/result" element={<ProtectedRoute><CreateResultPage /></ProtectedRoute>} />
       <Route path="/pigeon-owners" element={<ProtectedRoute><PigeonOwnersPage /></ProtectedRoute>} />
       <Route path="/subadmin" element={<ProtectedRoute><SubAdminPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -121,10 +121,9 @@ function TournamentBlock({ tournament }) {
           Pigeons remaining: <span className="text-white">{remaining}</span>
         </span>
       </div>
-
-      {/* Table */}
+{/* table */}
       <div className="mx-4 overflow-x-auto border border-gray border-t-0">
-        <table className="w-full text-xs sm:text-sm font-sans">
+        <table className="w-full text-xs sm:text-sm font-sans min-w-[500px]">
           <thead>
             <tr className="bg-light border-b border-gray">
               <th className="px-3 py-3 text-left text-dark font-semibold w-10">Sr #</th>
@@ -243,7 +242,7 @@ function TournamentBlock({ tournament }) {
 }
 
 export default function TournamentSection({ clubId }) {
-  const { data, isLoading } = useGetTournamentsQuery("?screen=On Screen");
+  const { data, isLoading } = useGetTournamentsQuery(`?screen=${encodeURIComponent("On Screen")}`);
   const tournaments = data?.data || [];
 
   const filtered = [...tournaments]

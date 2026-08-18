@@ -2,6 +2,77 @@ import Tournament from "../models/Tournament.js";
 import { deleteFromS3 } from "../services/s3Service.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
+const timeToSeconds = (timeStr) => {
+  if (!timeStr) return null;
+  const [h, m, s = 0] = timeStr.split(":").map(Number);
+  return h * 3600 + m * 60 + s;
+};
+
+const calculateDuration = (startTime, arrivalTime) => {
+  if (!arrivalTime) return null;
+  const startSec = timeToSeconds(startTime) || 0;
+  const arrivalSec = timeToSeconds(arrivalTime);
+  if (arrivalSec === null) return null;
+  let diff = arrivalSec - startSec;
+  if (diff < 0) diff += 24 * 3600;
+  return diff;
+};
+
+const formatDuration = (totalSeconds) => {
+  if (totalSeconds === null || totalSeconds === undefined) return "00:00:00";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+};
+
+const calculateOwnerTotal = (times, startTime, pigeons, helperPigeons) => {
+  const regularTimes = times.slice(0, pigeons);
+  const helperTimes = times.slice(pigeons, pigeons + helperPigeons);
+
+  let totalSeconds = 0;
+
+  regularTimes.forEach((t, i) => {
+    if (!helperTimes[i]) {
+      const dur = calculateDuration(startTime, t);
+      if (dur !== null) totalSeconds += dur;
+    }
+  });
+
+  helperTimes.forEach((t) => {
+    const dur = calculateDuration(startTime, t);
+    if (dur !== null) totalSeconds += dur;
+  });
+
+  return formatDuration(totalSeconds);
+};
+
+// Har owner ke saare saved din ke totals ko jama karta hai, fastest-first sort karta hai
+const recomputeTotalResults = (tournament) => {
+  const ownerTotals = {};
+
+  tournament.tournamentDays.forEach((day) => {
+    day.results.forEach((r) => {
+      const [h = 0, m = 0, s = 0] = (r.total || "00:00:00").split(":").map(Number);
+      const seconds = h * 3600 + m * 60 + s;
+      const key = String(r.owner);
+      ownerTotals[key] = (ownerTotals[key] || 0) + seconds;
+    });
+  });
+
+  const sorted = Object.entries(ownerTotals)
+    .map(([owner, seconds]) => ({ owner, seconds }))
+    .sort((a, b) => a.seconds - b.seconds);
+
+  tournament.totalResults = sorted.map((item, index) => ({
+    owner: item.owner,
+    rank: index + 1,
+    times: [],
+    total: formatDuration(item.seconds),
+  }));
+};
+
+
 // @GET /api/tournaments
 export const getTournaments = async (req, res) => {
   const { club, status, screen } = req.query;
@@ -15,7 +86,7 @@ export const getTournaments = async (req, res) => {
     .populate("club", "name")
     .populate("owners", "name city imageUrl phone")
     .populate("subadmins", "username role")
-    .populate("owners", "name city imageUrl phone")
+    .populate("totalResults.owner", "name city imageUrl")
     .sort({ createdAt: -1 });
 
   successResponse(res, tournaments);
@@ -137,6 +208,14 @@ export const createTournament = async (req, res) => {
   });
 
   const populated = await tournament.populate("club", "name");
+
+  if (tournament.screen === "On Screen") {
+    await Tournament.updateMany(
+      { _id: { $ne: tournament._id } },
+      { screen: "Off Screen" }
+    );
+  }
+
   successResponse(res, populated, "Tournament created", 201);
 };
 // @PUT /api/tournaments/:id
@@ -183,6 +262,13 @@ export const updateTournament = async (req, res) => {
   }
 
   await tournament.save();
+
+  if (tournament.screen === "On Screen") {
+    await Tournament.updateMany(
+      { _id: { $ne: tournament._id } },
+      { screen: "Off Screen" }
+    );
+  }
 
   successResponse(res, tournament, "Tournament updated");
 };
@@ -244,8 +330,65 @@ export const toggleScreen = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id);
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
 
-  tournament.screen = tournament.screen === "On Screen" ? "Off Screen" : "On Screen";
-  await tournament.save();
+  if (tournament.screen === "On Screen") {
+    tournament.screen = "Off Screen";
+    await tournament.save();
+  } else {
+    await Tournament.updateMany(
+      { _id: { $ne: tournament._id } },
+      { screen: "Off Screen" }
+    );
+    tournament.screen = "On Screen";
+    await tournament.save();
+  }
 
   successResponse(res, { screen: tournament.screen }, "Screen toggled");
+};
+
+// @PUT /api/tournaments/:id/day/:date/owner-result
+export const saveOwnerDayResult = async (req, res) => {
+  const tournament = await Tournament.findById(req.params.id);
+  if (!tournament) return errorResponse(res, "Tournament not found", 404);
+
+  const { ownerId, times, startTime } = req.body;
+  if (!ownerId || !Array.isArray(times)) {
+    return errorResponse(res, "ownerId and times[] required", 400);
+  }
+
+  const dayIndex = tournament.tournamentDays.findIndex(
+    (d) => new Date(d.date).toISOString().split("T")[0] === req.params.date
+  );
+  if (dayIndex === -1) return errorResponse(res, "Date not found", 404);
+
+  const finalStartTime = startTime || tournament.startTime;
+
+  const total = calculateOwnerTotal(
+    times,
+    finalStartTime,
+    tournament.pigeons,
+    tournament.helperPigeons
+  );
+
+  const day = tournament.tournamentDays[dayIndex];
+  const existingIdx = day.results.findIndex(r => String(r.owner) === String(ownerId));
+
+  if (existingIdx > -1) {
+    day.results[existingIdx].times = times;
+    day.results[existingIdx].startTime = finalStartTime;
+    day.results[existingIdx].total = total;
+  } else {
+    day.results.push({ owner: ownerId, times, startTime: finalStartTime, total });
+  }
+
+  day.landed = day.results.filter(r => r.times.some(t => t)).length;
+  day.remaining = Math.max(0, (tournament.owners?.length || 0) - day.landed);
+
+  recomputeTotalResults(tournament);
+
+  await tournament.save();
+
+  const populated = await Tournament.findById(tournament._id)
+    .populate("tournamentDays.results.owner", "name city imageUrl phone");
+
+  successResponse(res, populated.tournamentDays[dayIndex], "Result saved");
 };

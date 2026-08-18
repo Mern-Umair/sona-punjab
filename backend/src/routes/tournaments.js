@@ -3,6 +3,7 @@ import {
   getTournaments, getTournament, getTournamentByDay,
   getTournamentTotal, createTournament, updateTournament,
   deleteTournament, addDayResults, addTotalResults, toggleScreen,
+  saveOwnerDayResult,
 } from "../controllers/tournamentController.js";
 import { protect, adminOnly } from "../middleware/auth.js";
 import { uploadSingle } from "../middleware/upload.js";
@@ -23,6 +24,7 @@ router.post("/",                  protect, setPosterFolder, uploadSingle("poster
 router.put("/:id",                protect, setPosterFolder, uploadSingle("poster"), updateTournament);
 router.delete("/:id",             protect, adminOnly, deleteTournament);
 router.post("/:id/results/:date", protect, addDayResults);
+router.put("/:id/day/:date/owner-result", protect, saveOwnerDayResult);
 router.post("/:id/total-results", protect, addTotalResults);
 router.put("/:id/screen",         protect, adminOnly, toggleScreen);
 

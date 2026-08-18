@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
 import { FaTrophy } from "react-icons/fa";
 import {
@@ -382,6 +383,7 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
 }
 
 export default function TournamentsPage() {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
 
@@ -454,8 +456,8 @@ export default function TournamentsPage() {
             <div className="w-8 h-8 border-4 border-t-transparent border-[#122654] rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <table className="w-full text-xs sm:text-sm min-w-[700px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="px-4 py-3 text-left text-slate-500 font-medium w-10">#</th>
@@ -525,7 +527,10 @@ export default function TournamentsPage() {
                           >
                             <MdDelete size={14} />
                           </button>
-                          <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center">
+                          <button
+                            onClick={() => navigate(`/tournaments/${t._id}/result`)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center"
+                          >
                             Result
                           </button>
                         </div>
