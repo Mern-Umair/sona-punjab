@@ -3,7 +3,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 
 // @GET /api/subadmins
 export const getSubAdmins = async (req, res) => {
-  const users = await User.find().select("-password").sort({ createdAt: -1 });
+  const users = await User.find().select("-password").sort({ createdAt: 1 });
   successResponse(res, users);
 };
 

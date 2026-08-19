@@ -21,7 +21,7 @@ export default function HeroBanner() {
       <Swiper
         modules={[Autoplay]}
         autoplay={{ delay: 3000, disableOnInteraction: false }}
-        loop={true}
+        rewind={true}
         allowTouchMove={false}
         simulateTouch={false}
         className="w-full"

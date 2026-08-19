@@ -3,7 +3,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 
 // @GET /api/clubs
 export const getClubs = async (req, res) => {
-  const clubs = await Club.find().sort({ createdAt: -1 });
+  const clubs = await Club.find().sort({ createdAt: 1 });
   successResponse(res, clubs);
 };
 

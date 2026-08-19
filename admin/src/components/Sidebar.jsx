@@ -9,8 +9,9 @@ const links = [
   { label: "Banners", to: "/banners", icon: <MdImage size={18} /> },
   { label: "Headline", to: "/headline", icon: <MdTitle size={18} /> },
   { label: "Club", to: "/club", icon: <FaDove size={18} /> },
-  { label: "Tournaments List", to: "/tournaments", icon: <FaTrophy size={18} /> },
   { label: "Pigeon Owners", to: "/pigeon-owners", icon: <MdGroups size={18} /> },
+
+  { label: "Tournaments List", to: "/tournaments", icon: <FaTrophy size={18} /> },
   { label: "SubAdmin List", to: "/subadmin", icon: <FaUserShield size={18} /> },
 ];
 
@@ -19,8 +20,8 @@ export default function Sidebar({ open, onClose }) {
   const navigate = useNavigate();
 
   const user = useSelector(state => state.auth.user);
-  const filteredLinks = user?.role === "admin" 
-    ? links 
+  const filteredLinks = user?.role === "admin"
+    ? links
     : links.filter(link => link.to !== "/subadmin");
 
   const logout = () => {

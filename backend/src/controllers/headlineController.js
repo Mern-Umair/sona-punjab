@@ -3,7 +3,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 
 // @GET /api/headlines
 export const getHeadlines = async (req, res) => {
-  const headlines = await Headline.find().sort({ createdAt: -1 });
+  const headlines = await Headline.find().sort({ createdAt: 1 });
   successResponse(res, headlines);
 };
 

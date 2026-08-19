@@ -9,7 +9,7 @@ export const getOwners = async (req, res) => {
     ? { name: { $regex: search, $options: "i" } }
     : {};
 
-  const owners = await PigeonOwner.find(query).sort({ name: 1 });
+  const owners = await PigeonOwner.find(query).sort({ createdAt: 1 });
   successResponse(res, owners);
 };
 

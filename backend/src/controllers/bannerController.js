@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 
 // @GET /api/banners
 export const getBanners = async (req, res) => {
-  const banners = await Banner.find().sort({ createdAt: -1 });
+  const banners = await Banner.find().sort({ createdAt: 1 });
   successResponse(res, banners);
 };
 

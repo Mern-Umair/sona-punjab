@@ -87,7 +87,7 @@ export const getTournaments = async (req, res) => {
     .populate("owners", "name city imageUrl phone")
     .populate("subadmins", "username role")
     .populate("totalResults.owner", "name city imageUrl")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: 1 });
 
   successResponse(res, tournaments);
 };
