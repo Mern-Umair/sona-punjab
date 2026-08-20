@@ -26,7 +26,7 @@ function AdminLayout({ children }) {
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 sm:p-6">
-          {children}
+          { children }
         </main>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
 import { FaTrophy } from "react-icons/fa";
 import {
@@ -14,6 +15,8 @@ import { useGetOwnersQuery } from "../../redux/api/ownerApi";
 import toast, { Toaster } from "react-hot-toast";
 
 function CreateTournamentModal({ onClose, onSave, initial }) {
+  const user = useSelector((state) => state.auth.user);
+  const isSubAdmin = user?.role !== "admin";
   const [form, setForm] = useState({
     name: initial?.name || "",
     startDate: initial?.startDate ? new Date(initial.startDate).toISOString().split("T")[0] : "",
@@ -284,18 +287,20 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
               </div>
             )}
 
-            {/* Screen */}
-            <div>
-              <label className="text-slate-600 text-sm font-medium block mb-1">Show on screen</label>
-              <select
-                value={form.screen}
-                onChange={e => setForm({ ...form, screen: e.target.value })}
-                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors bg-white"
-              >
-                <option value="Off Screen">Off Screen</option>
-                <option value="On Screen">On Screen</option>
-              </select>
-            </div>
+            {/* Screen — sirf admin ke liye */}
+            {!isSubAdmin && (
+              <div>
+                <label className="text-slate-600 text-sm font-medium block mb-1">Show on screen</label>
+                <select
+                  value={form.screen}
+                  onChange={e => setForm({ ...form, screen: e.target.value })}
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors bg-white"
+                >
+                  <option value="Off Screen">Off Screen</option>
+                  <option value="On Screen">On Screen</option>
+                </select>
+              </div>
+            )}
 
             {/* Pigeon Owners */}
             <div>
@@ -384,6 +389,8 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
 
 export default function TournamentsPage() {
   const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
+  const isSubAdmin = user?.role !== "admin";
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
 
@@ -527,12 +534,14 @@ export default function TournamentsPage() {
                           >
                             <MdDelete size={14} />
                           </button>
-                          <button
-                            onClick={() => navigate(`/tournaments/${t._id}/result`)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center"
-                          >
-                            Result
-                          </button>
+                          {!isSubAdmin && (
+                            <button
+                              onClick={() => navigate(`/tournaments/${t._id}/result`)}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center"
+                            >
+                              Result
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
