@@ -380,8 +380,9 @@ export const saveOwnerDayResult = async (req, res) => {
     day.results.push({ owner: ownerId, times, startTime: finalStartTime, total });
   }
 
-  day.landed = day.results.filter(r => r.times.some(t => t)).length;
-  day.remaining = Math.max(0, (tournament.owners?.length || 0) - day.landed);
+  const totalPigeonSlots = (tournament.pigeons + tournament.helperPigeons) * (tournament.owners?.length || 0);
+  day.landed = day.results.reduce((sum, r) => sum + (r.times?.filter(Boolean).length || 0), 0);
+  day.remaining = Math.max(0, totalPigeonSlots - day.landed);
 
   recomputeTotalResults(tournament);
 

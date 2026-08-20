@@ -39,15 +39,28 @@ function TournamentBlock({ tournament }) {
   const results = isTotal ? totalResults : dayResults;
   const pigeons = tournament.pigeons || 3;
 
-  // Stats
+  // Stats — client jaisa: total slots = (pigeons + helperPigeons) × lofts count
+  const totalPigeonSlots =
+    ((tournament.pigeons || 0) + (tournament.helperPigeons || 0)) *
+    (tournament.owners?.length || 0);
+
   const landed = isTotal
-    ? (totalResults.reduce((acc, r) => acc + (r.times?.filter(Boolean).length || 0), 0))
+    ? (() => {
+      const ownerSlots = {}; // ownerId -> Set of distinct pigeon-positions that ever landed
+      (tournament.tournamentDays || []).forEach((day) => {
+        day.results?.forEach((r) => {
+          const ownerId = String(r.owner);
+          if (!ownerSlots[ownerId]) ownerSlots[ownerId] = new Set();
+          r.times?.forEach((t, idx) => {
+            if (t) ownerSlots[ownerId].add(idx);
+          });
+        });
+      });
+      return Object.values(ownerSlots).reduce((sum, set) => sum + set.size, 0);
+    })()
     : (dayStats.landed || 0);
-  const remaining = isTotal
-    ? Math.max(0, pigeons - landed)
-    : typeof dayStats.remaining === "number"
-      ? dayStats.remaining
-      : pigeons;
+
+  const remaining = Math.max(0, totalPigeonSlots - landed);
 
   // First & Last winner from results
   const firstWinner = results?.[0]?.owner?.name || "No results yet";
@@ -112,7 +125,7 @@ function TournamentBlock({ tournament }) {
           Lofts: <span className="text-white">{tournament.lofts || tournament.owners?.length || 0}</span>
         </span>
         <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
-          Pigeons: <span className="text-white">{pigeons}</span>
+          Pigeons: <span className="text-white">{totalPigeonSlots}</span>
         </span>
         <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
           Landed: <span className="text-white">{landed}</span>
@@ -121,7 +134,7 @@ function TournamentBlock({ tournament }) {
           Pigeons remaining: <span className="text-white">{remaining}</span>
         </span>
       </div>
-{/* table */}
+      {/* table */}
       <div className="mx-4 overflow-x-auto border border-gray border-t-0">
         <table className="w-full text-xs sm:text-sm font-sans min-w-[500px]">
           <thead>
@@ -212,15 +225,24 @@ function TournamentBlock({ tournament }) {
                   </td>
                   {/* Flying time */}
                   <td className="px-3 py-3 text-center text-dark font-semibold">
-                    {row.times?.[0] || "—"}
+                    {row.startTime || tournament.startTime || "—"}
                   </td>
                   {/* Times columns */}
                   {isTotal
-                    ? totalDateCols.map((_, ti) => (
-                      <td key={ti} className="px-2 py-3 text-center text-gray">
-                        {row.times?.[ti] || "—"}
-                      </td>
-                    ))
+                    ? dates.map((d, ti) => {
+                      const dayIso = new Date(d).toISOString().split("T")[0];
+                      const dayObj = tournament.tournamentDays?.find(
+                        (day) => new Date(day.date).toISOString().split("T")[0] === dayIso
+                      );
+                      const dayResult = dayObj?.results?.find(
+                        (r) => String(r.owner) === String(row.owner?._id)
+                      );
+                      return (
+                        <td key={ti} className="px-2 py-3 text-center text-gray">
+                          {dayResult?.total || "—"}
+                        </td>
+                      );
+                    })
                     : Array.from({ length: pigeons }).map((_, ti) => (
                       <td key={ti} className="px-2 py-3 text-center text-gray">
                         {row.times?.[ti + 1] || "—"}

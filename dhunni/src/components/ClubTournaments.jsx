@@ -34,57 +34,64 @@ function TournamentCard({ tournament }) {
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-                <table className="w-full table-fixed text-xs sm:text-sm font-sans min-w-[420px]">
+            <div className="overflow-x-auto max-w-full -mx-3 px-3 sm:mx-0 sm:px-0">
+                <table className="w-full table-fixed text-[11px] sm:text-sm font-sans min-w-[300px]">
+                    <colgroup>
+                        <col style={{ width: "6%" }} />
+                        <col style={{ width: "22%" }} />
+                        <col style={{ width: "34%" }} />
+                        <col style={{ width: "19%" }} />
+                        <col style={{ width: "19%" }} />
+                    </colgroup>
                     <thead>
                         <tr className="bg-light border-b border-gray">
-                            <th className="px-3 py-3 text-left text-dark font-semibold w-10">#</th>
-                            <th className="px-3 py-3 text-left text-dark font-semibold w-32">Tournament</th>
-                            <th className="px-3 py-3 text-center border-l border-gray" colSpan={3}>
-                                <span className="text-dark font-semibold">Results</span>
-                                <div className="grid grid-cols-3 text-[10px] text-gray font-medium mt-1">
-                                    <span>NAME</span>
-                                    <span className="text-center">TIME</span>
-                                    <span className="text-right">PRIZE</span>
-                                </div>
+                            <th rowSpan={2} className="px-1.5 py-3 text-left text-dark font-semibold align-bottom">#</th>
+                            <th rowSpan={2} className="px-1.5 py-3 text-left text-dark font-semibold align-bottom text-[10px] sm:text-sm leading-tight break-words">Tournament</th>
+                            <th colSpan={3} className="px-3 py-2 text-center text-dark font-semibold border-l border-gray">
+                                Results
                             </th>
+                        </tr>
+                        <tr className="bg-light border-b border-gray">
+                            <th className="px-3 py-1 text-left text-gray text-[10px] font-medium border-l border-gray">NAME</th>
+                            <th className="px-3 py-1 text-center text-gray text-[10px] font-medium">TIME</th>
+                            <th className="px-3 py-1 text-center text-gray text-[10px] font-medium">PRIZE</th>
                         </tr>
                     </thead>
                     <tbody>
                         {!hasResults ? (
                             <tr className="border-t border-gray">
-                                <td className="px-3 py-4 text-center text-dark">{1}</td>
-                                <td className="px-3 py-4">
+                                <td className="px-1.5 py-3 text-center text-dark">{1}</td>
+                                <td className="px-1.5 py-3">
                                     {tournament.posterUrl ? (
                                         <img
                                             src={tournament.posterUrl}
                                             alt={tournament.name}
-                                            className="w-24 h-28 object-cover rounded border border-gray"
+                                            className="w-10 h-14 sm:w-24 sm:h-28 object-cover rounded border border-gray"
                                         />
                                     ) : (
-                                        <div className="w-24 h-28 bg-light border border-gray rounded flex items-center justify-center">
+                                        <div className="w-10 h-14 sm:w-24 sm:h-28 bg-light border border-gray rounded flex items-center justify-center">
                                             <span className="text-gray text-xs">No poster</span>
                                         </div>
                                     )}
                                 </td>
-                                <td colSpan={3} className="px-3 py-4 text-center text-gray text-xs border-l border-gray">
+                                <td colSpan={3} className="px-1.5 py-3 text-center text-gray text-xs border-l border-gray">
                                     No winner or final results yet. Check back after the tournament.
                                 </td>
                             </tr>
                         ) : (
                             totalResults.map((row, i) => (
                                 <tr key={i} className={`border-t border-gray ${i % 2 === 0 ? "bg-white" : "bg-light"}`}>
-                                    <td className="px-3 py-4 text-center text-dark font-bold">{i + 1}</td>
+                                    <td className="px-1.5 py-3 text-center text-dark font-bold">{i + 1}</td>
                                     <td className="px-3 py-4">
                                         {i === 0 && (
                                             tournament.posterUrl ? (
                                                 <img
                                                     src={tournament.posterUrl}
                                                     alt={tournament.name}
-                                                    className="w-24 h-28 object-cover rounded border border-gray"
+                                                    className="w-10 h-14 sm:w-24 sm:h-28 object-cover rounded border border-gray"
                                                 />
                                             ) : (
-                                                <div className="w-24 h-28 bg-light border border-gray rounded flex items-center justify-center">
+                                                <div className="w-10 h-14 sm:w-24 sm:h-28 bg-light border border-gray rounded flex items-center justify-center">
                                                     <span className="text-gray text-xs">No poster</span>
                                                 </div>
                                             )
@@ -104,11 +111,11 @@ function TournamentCard({ tournament }) {
                                         </div>
                                     </td>
                                     {/* Time */}
-                                    <td className="px-3 py-4 text-center text-dark font-semibold">
+                                    <td className="px-1.5 py-3 text-center text-dark font-semibold">
                                         {row.total || "—"}
                                     </td>
                                     {/* Prize */}
-                                    <td className="px-3 py-4 text-center text-dark">
+                                    <td className="px-1.5 py-3 text-center text-dark">
                                         {prizeDetails[i] || "—"}
                                     </td>
                                 </tr>
@@ -179,7 +186,7 @@ export default function ClubTournaments({ clubId }) {
     }
 
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-x-hidden">
 
             {/* Year Filter */}
             {years.length > 0 && (

@@ -33,7 +33,7 @@ function AddBannerModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[200] flex items-center justify-center px-4">
       <div className="bg-white rounded-xl w-full max-w-lg shadow-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
           <h3 className="text-slate-800 font-bold text-lg">Create Banner</h3>
