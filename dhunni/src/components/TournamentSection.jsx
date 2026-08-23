@@ -161,100 +161,76 @@ function TournamentBlock({ tournament }) {
                   <div className="inline-block w-8 h-8 border-4 border-t-transparent border-navy rounded-full animate-spin" />
                 </td>
               </tr>
-            ) : results.length === 0 ? (
-              tournament.owners?.length > 0 ? (
-                tournament.owners.map((owner, i) => (
-                  <tr key={i} className={`border-t border-gray ${i % 2 === 0 ? "bg-white" : "bg-light"}`}>
+            ) : !tournament.owners || tournament.owners.length === 0 ? (
+              <tr>
+                <td colSpan={pigeons + 5} className="text-center py-6 text-gray text-sm">
+                  No results yet.
+                </td>
+              </tr>
+            ) : (
+              tournament.owners.map((owner, i) => {
+                const matched = results.find(
+                  (r) => String(r.owner?._id || r.owner) === String(owner._id)
+                );
+                return (
+                  <tr key={owner._id} className={`border-t border-gray ${i % 2 === 0 ? "bg-white" : "bg-light"}`}>
                     <td className="px-3 py-3 text-center text-dark font-bold">{i + 1}</td>
+                    {/* Picture */}
                     <td className="px-3 py-3">
                       {owner.imageUrl ? (
-                        <img src={owner.imageUrl} alt={owner.name} className="w-10 h-10 rounded-full object-cover border-2 border-gold" />
+                        <img
+                          src={owner.imageUrl}
+                          alt={owner.name}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-gold"
+                        />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-navypale border-2 border-gold flex items-center justify-center">
-                          <span className="text-navy text-sm font-bold">{owner.name?.charAt(0) || "?"}</span>
+                          <span className="text-navy text-sm font-bold">
+                            {owner.name?.charAt(0) || "?"}
+                          </span>
                         </div>
                       )}
                     </td>
+                    {/* Name + Phone */}
                     <td className="px-3 py-3">
                       <p className="text-navy font-semibold leading-tight">{owner.name || "—"}</p>
-                      {owner.phone && <p className="text-blue-500 text-[10px] underline">{owner.phone}</p>}
+                      {owner.phone && (
+                        <p className="text-blue-500 text-[10px] underline">{owner.phone}</p>
+                      )}
                     </td>
-                    <td className="px-3 py-3 text-center text-dark font-semibold">{tournament.startTime || "—"}</td>
-                    {Array.from({ length: pigeons }).map((_, ti) => (
-                      <td key={ti} className="px-2 py-3 text-center text-gray">—</td>
-                    ))}
-                    <td className="px-3 py-3 text-center text-gray">—</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={pigeons + 5} className="text-center py-6 text-gray text-sm">
-                    No results yet.
-                  </td>
-                </tr>
-              )
-            ) : (
-              results.map((row, i) => (
-                <tr
-                  key={i}
-                  className={`border-t border-gray ${i % 2 === 0 ? "bg-white" : "bg-light"}`}
-                >
-                  <td className="px-3 py-3 text-center text-dark font-bold">{i + 1}</td>
-                  {/* Picture */}
-                  <td className="px-3 py-3">
-                    {row.owner?.imageUrl ? (
-                      <img
-                        src={row.owner.imageUrl}
-                        alt={row.owner?.name}
-                        className="w-10 h-10 rounded-full object-cover border-2 border-gold"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-navypale border-2 border-gold flex items-center justify-center">
-                        <span className="text-navy text-sm font-bold">
-                          {row.owner?.name?.charAt(0) || "?"}
-                        </span>
-                      </div>
-                    )}
-                  </td>
-                  {/* Name + Phone */}
-                  <td className="px-3 py-3">
-                    <p className="text-navy font-semibold leading-tight">{row.owner?.name || "—"}</p>
-                    {row.owner?.phone && (
-                      <p className="text-blue-500 text-[10px] underline">{row.owner.phone}</p>
-                    )}
-                  </td>
-                  {/* Flying time */}
-                  <td className="px-3 py-3 text-center text-dark font-semibold">
-                    {row.startTime || tournament.startTime || "—"}
-                  </td>
-                  {/* Times columns */}
-                  {isTotal
-                    ? dates.map((d, ti) => {
-                      const dayIso = new Date(d).toISOString().split("T")[0];
-                      const dayObj = tournament.tournamentDays?.find(
-                        (day) => new Date(day.date).toISOString().split("T")[0] === dayIso
-                      );
-                      const dayResult = dayObj?.results?.find(
-                        (r) => String(r.owner) === String(row.owner?._id)
-                      );
-                      return (
+                    {/* Flying time */}
+                    <td className="px-3 py-3 text-center text-dark font-semibold">
+                      {matched?.startTime || tournament.startTime || "—"}
+                    </td>
+                    {/* Times columns */}
+                    {isTotal
+                      ? dates.map((d, ti) => {
+                        const dayIso = new Date(d).toISOString().split("T")[0];
+                        const dayObj = tournament.tournamentDays?.find(
+                          (day) => new Date(day.date).toISOString().split("T")[0] === dayIso
+                        );
+                        const dayResult = dayObj?.results?.find(
+                          (r) => String(r.owner) === String(owner._id)
+                        );
+                        return (
+                          <td key={ti} className="px-2 py-3 text-center text-gray">
+                            {dayResult?.total || "—"}
+                          </td>
+                        );
+                      })
+                      : Array.from({ length: pigeons }).map((_, ti) => (
                         <td key={ti} className="px-2 py-3 text-center text-gray">
-                          {dayResult?.total || "—"}
+                          {matched?.times?.[ti + 1] || "—"}
                         </td>
-                      );
-                    })
-                    : Array.from({ length: pigeons }).map((_, ti) => (
-                      <td key={ti} className="px-2 py-3 text-center text-gray">
-                        {row.times?.[ti + 1] || "—"}
-                      </td>
-                    ))
-                  }
-                  {/* Total */}
-                  <td className="px-3 py-3 text-center font-bold text-navy">
-                    {row.total || "No Result"}
-                  </td>
-                </tr>
-              ))
+                      ))
+                    }
+                    {/* Total */}
+                    <td className="px-3 py-3 text-center font-bold text-navy">
+                      {matched?.total || "No Result"}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

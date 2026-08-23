@@ -192,7 +192,6 @@ export default function SubAdminPage() {
                   <th className="px-4 py-3 text-left text-slate-500 font-medium w-10">#</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">User Name</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Phone</th>
-                  <th className="px-4 py-3 text-left text-slate-500 font-medium">Password</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Role</th>
                   <th className="px-4 py-3 text-right text-slate-500 font-medium">Actions</th>
                 </tr>
@@ -210,7 +209,6 @@ export default function SubAdminPage() {
                       <td className="px-4 py-4 text-slate-400">{i + 1}</td>
                       <td className="px-4 py-4 text-slate-700 font-medium">{a.username}</td>
                       <td className="px-4 py-4 text-slate-500">{a.phone || "—"}</td>
-                      <td className="px-4 py-4 text-slate-500">••••••••</td>
                       <td className="px-4 py-4 text-left">
                         <span className={`text-xs font-bold ${a.role === "admin" ? "text-green-600" : "text-amber-500"}`}>
                           {a.role}
@@ -218,12 +216,7 @@ export default function SubAdminPage() {
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => handleCopy(a.username)}
-                            className="flex gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center"
-                          >
-                            <MdContentCopy size={14} />
-                          </button>
+                      
                           <button
                             onClick={() => { setEditItem(a); setShowModal(true); }}
                             disabled={updating}

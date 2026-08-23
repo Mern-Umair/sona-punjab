@@ -45,7 +45,7 @@ export default function Sidebar({ open, onClose }) {
         w-56 shrink-0 bg-[#122654] flex flex-col
         transition-transform duration-300
         ${open ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0 lg:static lg:h-screen lg:overflow-y-auto
+        lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:self-start
       `}>
 
         {/* Logo */}
