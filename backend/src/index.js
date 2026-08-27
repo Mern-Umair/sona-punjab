@@ -20,7 +20,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://sona-punjab-admin.onrender.com",
+        "https://sona-punjab-dhunni.onrender.com",
+    ],
     credentials: true,
 }));
 app.use(express.json());
