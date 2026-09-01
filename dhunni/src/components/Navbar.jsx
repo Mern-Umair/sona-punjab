@@ -27,6 +27,17 @@ export default function Navbar() {
             </p>
           </Link>
 
+          <div className="flex items-center gap-3">
+            {/* Admin Login */}
+<a
+            href="https://sona-punjab-admin.onrender.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden lg:inline-flex text-sm font-sans font-semibold px-4 py-2 rounded-md border border-navy text-navy hover:bg-navy hover:text-white transition-colors"
+            >
+            Admin Login
+          </a>
+
           {/* Hamburger */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -44,62 +55,72 @@ export default function Navbar() {
             )}
           </button>
         </div>
+      </div>
 
-        {/* Desktop links — Club names */}
-        <div className="hidden lg:flex items-center gap-0.5 pb-2 overflow-x-auto">
-          <Link
-            to="/"
-            className={`text-sm font-sans whitespace-nowrap px-4 py-2 rounded-md transition-all duration-200 border
+      {/* Desktop links — Club names */}
+      <div className="hidden lg:flex items-center gap-0.5 pb-2 overflow-x-auto">
+        <Link
+          to="/"
+          className={`text-sm font-sans whitespace-nowrap px-4 py-2 rounded-md transition-all duration-200 border
               ${pathname === "/"
+              ? "bg-navy text-white border-navy font-semibold"
+              : "text-dark hover:text-navy hover:bg-navypale border-transparent hover:border-navy"
+            }`}
+        >
+          Home
+        </Link>
+        {clubs.map((club) => (
+          <Link
+            key={club._id}
+            to={`/club/${club._id}`}
+            className={`text-sm font-sans whitespace-nowrap px-4 py-2 rounded-md transition-all duration-200 border
+                ${pathname === `/club/${club._id}`
                 ? "bg-navy text-white border-navy font-semibold"
                 : "text-dark hover:text-navy hover:bg-navypale border-transparent hover:border-navy"
               }`}
           >
-            Home
+            {club.name}
           </Link>
-          {clubs.map((club) => (
-            <Link
-              key={club._id}
-              to={`/club/${club._id}`}
-              className={`text-sm font-sans whitespace-nowrap px-4 py-2 rounded-md transition-all duration-200 border
-                ${pathname === `/club/${club._id}`
-                  ? "bg-navy text-white border-navy font-semibold"
-                  : "text-dark hover:text-navy hover:bg-navypale border-transparent hover:border-navy"
-                }`}
-            >
-              {club.name}
-            </Link>
-          ))}
-        </div>
+        ))}
       </div>
+    </div>
 
-      {/* Mobile menu */}
-      <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"}`}>
-        <div className="bg-white border-t border-gray px-4 py-3 flex flex-col gap-1">
-          <Link
-            to="/"
-            onClick={() => setMenuOpen(false)}
-            className={`text-sm font-sans px-4 py-3 rounded-md border transition-all duration-200
+      {/* Mobile menu */ }
+  <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"}`}>
+    <div className="bg-white border-t border-gray px-4 py-3 flex flex-col gap-1">
+      <Link
+        to="/"
+        onClick={() => setMenuOpen(false)}
+        className={`text-sm font-sans px-4 py-3 rounded-md border transition-all duration-200
               ${pathname === "/" ? "bg-navy text-white border-navy font-semibold" : "text-dark hover:text-navy hover:bg-navypale border-transparent"}`}
-          >
-            Home
-          </Link>
-          {clubs.map((club) => (
-            <Link
-              key={club._id}
-              to={`/club/${club._id}`}
-              onClick={() => setMenuOpen(false)}
-              className={`text-sm font-sans px-4 py-3 rounded-md border transition-all duration-200
+      >
+        Home
+      </Link>
+      {clubs.map((club) => (
+        <Link
+          key={club._id}
+          to={`/club/${club._id}`}
+          onClick={() => setMenuOpen(false)}
+          className={`text-sm font-sans px-4 py-3 rounded-md border transition-all duration-200
                 ${pathname === `/club/${club._id}` ? "bg-navy text-white border-navy font-semibold" : "text-dark hover:text-navy hover:bg-navypale border-transparent"}`}
-            >
-              {club.name}
-            </Link>
-          ))}
-        </div>
-      </div>
+        >
+          {club.name}
+        </Link>
+      ))}
+      <a
+        href="https://sona-punjab-admin.onrender.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => setMenuOpen(false)}
+        className="text-sm font-sans px-4 py-3 rounded-md border border-navy text-navy text-center font-semibold hover:bg-navy hover:text-white transition-colors mt-1"
+      >
+        Admin Login
+      </a>
+    </div>
+  </div >
 
-      {/* Bottom gold line */}
-      <div className="h-1 bg-gold" />
-    </header>
+  {/* Bottom gold line */ }
+  < div className="h-1 bg-gold" />
+    </header >
   );
 }
