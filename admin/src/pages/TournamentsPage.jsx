@@ -304,7 +304,31 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
 
             {/* Pigeon Owners */}
             <div>
-              <label className="text-slate-600 text-sm font-medium block mb-2">Pigeons Owners</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-slate-600 text-sm font-medium">Pigeons Owners</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allSelected = owners.length > 0 && owners.every(o => selectedOwners.find(s => s._id === o._id));
+                    if (allSelected) {
+                      setSelectedOwners(prev => prev.filter(s => !owners.find(o => o._id === s._id)));
+                    } else {
+                      setSelectedOwners(prev => {
+                        const merged = [...prev];
+                        owners.forEach(o => {
+                          if (!merged.find(s => s._id === o._id)) merged.push(o);
+                        });
+                        return merged;
+                      });
+                    }
+                  }}
+                  className="text-xs font-semibold text-[#0ea5e9] hover:text-[#0284c7]"
+                >
+                  {owners.length > 0 && owners.every(o => selectedOwners.find(s => s._id === o._id))
+                    ? "Deselect All"
+                    : "Select All"}
+                </button>
+              </div>
               <div className="mb-3">
                 <input
                   type="text"

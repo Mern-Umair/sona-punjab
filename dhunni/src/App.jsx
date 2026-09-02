@@ -10,8 +10,8 @@ function ClubPage() {
   const { clubId } = useParams();
   return (
     <div className="bg-light min-h-screen flex flex-col">
-      <Navbar />
       <HeroBanner />
+      <Navbar />
       <Headline />
       <ClubTournaments clubId={clubId} />
     </div>
@@ -23,8 +23,8 @@ const App = () => {
     <Routes>
       <Route path="/" element={
         <div className="bg-light min-h-screen flex flex-col">
-          <Navbar />
           <HeroBanner />
+          <Navbar />
           <Headline />
           <TournamentSection />
         </div>
@@ -32,7 +32,9 @@ const App = () => {
       <Route path="/club/:clubId" element={<ClubPage />} />
       <Route path="/results/:id" element={
         <div className="bg-light min-h-screen flex flex-col">
+          <HeroBanner />
           <Navbar />
+          <Headline />
           <TournamentSection />
         </div>
       } />

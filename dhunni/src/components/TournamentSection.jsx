@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   useGetTournamentsQuery,
+  useGetTournamentQuery,
   useGetTournamentByDayQuery,
   useGetTournamentTotalQuery,
 } from "../../redux/api/tournamentApi";
@@ -9,6 +11,13 @@ function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+}
+
+function timeToMinutes(t) {
+  if (!t) return null;
+  const [h, m] = t.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
 }
 
 function TournamentBlock({ tournament }) {
@@ -39,14 +48,13 @@ function TournamentBlock({ tournament }) {
   const results = isTotal ? totalResults : dayResults;
   const pigeons = tournament.pigeons || 3;
 
-  // Stats — client jaisa: total slots = (pigeons + helperPigeons) × lofts count
   const totalPigeonSlots =
     ((tournament.pigeons || 0) + (tournament.helperPigeons || 0)) *
     (tournament.owners?.length || 0);
 
   const landed = isTotal
     ? (() => {
-      const ownerSlots = {}; // ownerId -> Set of distinct pigeon-positions that ever landed
+      const ownerSlots = {};
       (tournament.tournamentDays || []).forEach((day) => {
         day.results?.forEach((r) => {
           const ownerId = String(r.owner);
@@ -62,26 +70,37 @@ function TournamentBlock({ tournament }) {
 
   const remaining = Math.max(0, totalPigeonSlots - landed);
 
-  // First & Last winner from results
-  const firstWinner = results?.[0]?.owner?.name || "No results yet";
-  const lastWinner =
-    results?.length > 1
-      ? results[results.length - 1]?.owner?.name
-      : "No results yet";
-
-  // Total columns — for total tab show date columns
   const totalDateCols = isTotal
     ? dates.map((d) => formatDate(d))
     : [];
 
+  // Winning pigeon = highest individual clock-time cell across all owners, for the current day
+  const winningPigeon = (() => {
+    if (isTotal) return null;
+    let best = null;
+    tournament.owners?.forEach((owner) => {
+      const matched = results.find(
+        (r) => String(r.owner?._id || r.owner) === String(owner._id)
+      );
+      if (!matched?.times) return;
+      for (let ti = 0; ti < pigeons; ti++) {
+        const t = matched.times[ti + 1];
+        const mins = timeToMinutes(t);
+        if (mins === null) continue;
+        if (!best || mins > best.minutes) {
+          best = { ownerId: String(owner._id), colIndex: ti, time: t, minutes: mins, ownerName: owner.name };
+        }
+      }
+    });
+    return best;
+  })();
+
   return (
     <section className="w-full mb-10">
-      {/* Title */}
       <h2 className="text-navy font-heading font-bold text-2xl sm:text-3xl text-center py-5">
         {tournament.name}
       </h2>
 
-      {/* Date Tabs — centered, all in one line */}
       <div className="flex justify-center items-center gap-2 flex-wrap px-4 pb-4">
         {dates.map((date, i) => (
           <button
@@ -108,62 +127,57 @@ function TournamentBlock({ tournament }) {
         </button>
       </div>
 
-      {/* First & Last Winner — only for date tabs not total */}
-      {!isTotal && (
-        <div className="mx-4 mb-2 bg-yellow-50 border border-yellow-200 rounded px-4 py-2 text-xs sm:text-sm">
-          <span className="font-bold text-dark">First winner: </span>
-          <span className="text-navy">{firstWinner}</span>
-          <span className="mx-2 text-gray">|</span>
-          <span className="font-bold text-dark">Last winner: </span>
-          <span className="text-navy">{lastWinner}</span>
-        </div>
-      )}
-
-      {/* Stats Bar */}
-      <div className="mx-4 mb-0 bg-navy rounded-t px-4 py-2.5 flex flex-wrap gap-4 justify-center">
-        <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
-          Lofts: <span className="text-white">{tournament.lofts || tournament.owners?.length || 0}</span>
-        </span>
-        <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
-          Pigeons: <span className="text-white">{totalPigeonSlots}</span>
-        </span>
-        <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
-          Landed: <span className="text-white">{landed}</span>
-        </span>
-        <span className="text-gold text-xs sm:text-sm font-sans font-semibold">
-          Pigeons remaining: <span className="text-white">{remaining}</span>
-        </span>
+      {/* Info box — matches client's reference: light bg, left accent border */}
+      <div className="mx-4 mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-4 py-3 text-xs sm:text-sm text-dark">
+        <p>
+          Lofts: <strong>{tournament.lofts || tournament.owners?.length || 0}</strong>,
+          {" "}Total pigeons: <strong>{totalPigeonSlots}</strong>,
+          {" "}Pigeons landed: <strong>{landed}</strong>,
+          {" "}Pigeons remaining: <strong>{remaining}</strong>
+        </p>
+        {!isTotal && (
+          <p className="mt-2">
+            Todays winner pigeon time:{" "}
+            {winningPigeon ? (
+              <>
+                <span className="bg-cyan-600 text-white font-bold px-2 py-0.5 rounded">
+                  {winningPigeon.time}
+                </span>
+                {", "}{winningPigeon.ownerName}
+              </>
+            ) : (
+              "No results yet"
+            )}
+          </p>
+        )}
       </div>
-      {/* table */}
-      <div className="mx-4 overflow-x-auto border border-gray border-t-0">
+
+      <div className="mx-4 overflow-x-auto border border-gray">
         <table className="w-full text-xs sm:text-sm font-sans min-w-[500px]">
           <thead>
-            <tr className="bg-light border-b border-gray">
-              <th className="px-3 py-3 text-left text-dark font-semibold w-10">Sr #</th>
-              <th className="px-3 py-3 text-left text-dark font-semibold">Picture</th>
-              <th className="px-3 py-3 text-left text-dark font-semibold">Name</th>
-              <th className="px-3 py-3 text-center text-dark font-semibold whitespace-nowrap">Flying time</th>
+            <tr className="bg-navy">
+              <th className="pl-24 sm:pl-28 pr-3 py-3 text-left text-white font-semibold">Name</th>
               {isTotal
                 ? totalDateCols.map((col, i) => (
-                  <th key={i} className="px-3 py-3 text-center text-dark font-semibold whitespace-nowrap">{col}</th>
+                  <th key={i} className="px-3 py-3 text-center text-white font-semibold whitespace-nowrap">{col}</th>
                 ))
                 : Array.from({ length: pigeons }).map((_, n) => (
-                  <th key={n} className="px-2 py-3 text-center text-dark font-semibold">#{n + 1}</th>
+                  <th key={n} className="px-2 py-3 text-center text-white font-semibold">#{n + 1}</th>
                 ))
               }
-              <th className="px-3 py-3 text-center text-dark font-semibold">Total</th>
+              <th className="px-3 py-3 text-center text-white font-semibold">Total</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={pigeons + 5} className="text-center py-8">
+                <td colSpan={pigeons + 2} className="text-center py-8">
                   <div className="inline-block w-8 h-8 border-4 border-t-transparent border-navy rounded-full animate-spin" />
                 </td>
               </tr>
             ) : !tournament.owners || tournament.owners.length === 0 ? (
               <tr>
-                <td colSpan={pigeons + 5} className="text-center py-6 text-gray text-sm">
+                <td colSpan={pigeons + 2} className="text-center py-6 text-gray text-sm">
                   No results yet.
                 </td>
               </tr>
@@ -173,36 +187,33 @@ function TournamentBlock({ tournament }) {
                   (r) => String(r.owner?._id || r.owner) === String(owner._id)
                 );
                 return (
-                  <tr key={owner._id} className={`border-t border-gray ${i % 2 === 0 ? "bg-white" : "bg-light"}`}>
-                    <td className="px-3 py-3 text-center text-dark font-bold">{i + 1}</td>
-                    {/* Picture */}
-                    <td className="px-3 py-3">
-                      {owner.imageUrl ? (
-                        <img
-                          src={owner.imageUrl}
-                          alt={owner.name}
-                          className="w-10 h-10 rounded-full object-cover border-2 border-gold"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-navypale border-2 border-gold flex items-center justify-center">
-                          <span className="text-navy text-sm font-bold">
-                            {owner.name?.charAt(0) || "?"}
-                          </span>
+                  <tr
+                    key={owner._id}
+                    className={`border-t border-gray transition-colors hover:bg-cyan-100 ${i % 2 === 0 ? "bg-white" : "bg-sky-50"}`}
+                  >
+                    <td className="px-3 py-1.5">
+                      <div className="flex items-center gap-3">
+                        <span className="text-dark font-bold w-5 text-center shrink-0">{i + 1}</span>
+                        {owner.imageUrl ? (
+                          <img
+                            src={owner.imageUrl}
+                            alt={owner.name}
+                            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-gold shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-navypale border-2 border-gold flex items-center justify-center shrink-0">
+                            <span className="text-navy text-sm font-bold">
+                              {owner.name?.charAt(0) || "?"}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-navy font-semibold leading-tight">{owner.name || "—"}</p>
+                          {owner.city && <p className="text-gray text-[11px]">{owner.city}</p>}
                         </div>
-                      )}
+                      </div>
                     </td>
-                    {/* Name + Phone */}
-                    <td className="px-3 py-3">
-                      <p className="text-navy font-semibold leading-tight">{owner.name || "—"}</p>
-                      {owner.phone && (
-                        <p className="text-blue-500 text-[10px] underline">{owner.phone}</p>
-                      )}
-                    </td>
-                    {/* Flying time */}
-                    <td className="px-3 py-3 text-center text-dark font-semibold">
-                      {matched?.startTime || tournament.startTime || "—"}
-                    </td>
-                    {/* Times columns */}
+
                     {isTotal
                       ? dates.map((d, ti) => {
                         const dayIso = new Date(d).toISOString().split("T")[0];
@@ -218,14 +229,26 @@ function TournamentBlock({ tournament }) {
                           </td>
                         );
                       })
-                      : Array.from({ length: pigeons }).map((_, ti) => (
-                        <td key={ti} className="px-2 py-3 text-center text-gray">
-                          {matched?.times?.[ti + 1] || "—"}
-                        </td>
-                      ))
+                      : Array.from({ length: pigeons }).map((_, ti) => {
+                        const isWinningCell =
+                          winningPigeon &&
+                          winningPigeon.ownerId === String(owner._id) &&
+                          winningPigeon.colIndex === ti;
+                        return (
+                          <td
+                            key={ti}
+                            className={`px-2 py-1.5 text-center transition-colors ${isWinningCell
+                                ? "bg-cyan-600 text-white font-bold"
+                                : "text-gray"
+                              }`}
+                          >
+                            {matched?.times?.[ti + 1] || "—"}
+                          </td>
+                        );
+                      })
                     }
-                    {/* Total */}
-                    <td className="px-3 py-3 text-center font-bold text-navy">
+
+                    <td className="px-3 py-1.5 text-center font-bold text-navy">
                       {matched?.total || "No Result"}
                     </td>
                   </tr>
@@ -240,7 +263,45 @@ function TournamentBlock({ tournament }) {
 }
 
 export default function TournamentSection({ clubId }) {
-  const { data, isLoading } = useGetTournamentsQuery(`?screen=${encodeURIComponent("On Screen")}`);
+  const { id } = useParams();
+
+  // Single-tournament view — via /results/:id (click se aaya hua specific tournament)
+  const { data: singleData, isLoading: singleLoading } = useGetTournamentQuery(id, {
+    skip: !id,
+  });
+
+  // Home page view — sirf "On Screen" tournament
+  const { data, isLoading } = useGetTournamentsQuery(
+    `?screen=${encodeURIComponent("On Screen")}`,
+    { skip: !!id }
+  );
+
+  if (id) {
+    if (singleLoading) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-10 h-10 border-4 border-t-transparent border-navy rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    const tournament = singleData?.data;
+
+    if (!tournament) {
+      return (
+        <div className="text-center py-20 text-gray text-sm">
+          Tournament not found.
+        </div>
+      );
+    }
+
+    return (
+      <div className="py-4">
+        <TournamentBlock tournament={tournament} />
+      </div>
+    );
+  }
+
   const tournaments = data?.data || [];
 
   const filtered = [...tournaments]
