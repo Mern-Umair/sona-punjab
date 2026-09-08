@@ -1,11 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-import { MdDashboard, MdImage, MdTitle, MdGroups, MdLogout } from "react-icons/md";
+import { MdDashboard, MdImage, MdTitle, MdGroups, MdLogout, MdLanguage } from "react-icons/md";
 import { FaTrophy, FaDove, FaUserShield } from "react-icons/fa";
 
 const links = [
   { label: "Dashboard", to: "/", icon: <MdDashboard size={18} /> },
+  { label: "Sona Punjab", href: "https://sona-punjab-dhunni.onrender.com", icon: <MdLanguage size={18} /> },
   { label: "Banners", to: "/banners", icon: <MdImage size={18} /> },
   { label: "Headline", to: "/headline", icon: <MdTitle size={18} /> },
   { label: "Club", to: "/club", icon: <FaDove size={18} /> },
@@ -68,7 +69,7 @@ export default function Sidebar({ open, onClose }) {
             link.href ? (
               <button
                 key={link.href}
-                onClick={() => { window.location.href = link.href; onClose?.(); }}
+                onClick={() => { window.open(link.href, "_blank", "noopener,noreferrer"); onClose?.(); }}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium text-blue-200 hover:bg-[#1a3570] hover:text-white w-full text-left"
               >
                 <span className="shrink-0">{link.icon}</span>
