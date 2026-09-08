@@ -48,6 +48,7 @@ const calculateOwnerTotal = (times, startTime, pigeons, helperPigeons) => {
 };
 
 // Har owner ke saare saved din ke totals ko jama karta hai, fastest-first sort karta hai
+// Har owner ke saare saved din ke totals ko jama karta hai, fastest-first sort karta hai
 const recomputeTotalResults = (tournament) => {
   const ownerTotals = {};
 
@@ -72,6 +73,31 @@ const recomputeTotalResults = (tournament) => {
   }));
 };
 
+// Sirf un dinon ka total jama karta hai jinhe admin ne "Double Stamp" mark kiya ho
+const recomputeDoubleStampResults = (tournament) => {
+  const ownerTotals = {};
+
+  tournament.tournamentDays.forEach((day) => {
+    day.results.forEach((r) => {
+      if (!r.isDoubleStamp) return;
+      const [h = 0, m = 0, s = 0] = (r.total || "00:00:00").split(":").map(Number);
+      const seconds = h * 3600 + m * 60 + s;
+      const key = String(r.owner);
+      ownerTotals[key] = (ownerTotals[key] || 0) + seconds;
+    });
+  });
+
+  const sorted = Object.entries(ownerTotals)
+    .map(([owner, seconds]) => ({ owner, seconds }))
+    .sort((a, b) => a.seconds - b.seconds);
+
+  tournament.doubleStampResults = sorted.map((item, index) => ({
+    owner: item.owner,
+    rank: index + 1,
+    times: [],
+    total: formatDuration(item.seconds),
+  }));
+};
 
 // @GET /api/tournaments
 export const getTournaments = async (req, res) => {
@@ -87,6 +113,7 @@ export const getTournaments = async (req, res) => {
     .populate("owners", "name city imageUrl phone")
     .populate("subadmins", "username role")
     .populate("totalResults.owner", "name city imageUrl")
+    .populate("doubleStampResults.owner", "name city imageUrl")
     .sort({ createdAt: 1 });
 
   successResponse(res, tournaments);
@@ -99,7 +126,8 @@ export const getTournament = async (req, res) => {
     .populate("owners", "name city imageUrl phone")
     .populate("subadmins", "username role")
     .populate("tournamentDays.results.owner", "name city imageUrl phone")
-    .populate("totalResults.owner", "name city imageUrl");
+    .populate("totalResults.owner", "name city imageUrl")
+    .populate("doubleStampResults.owner", "name city imageUrl");
 
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
 
@@ -137,7 +165,8 @@ export const getTournamentByDay = async (req, res) => {
 export const getTournamentTotal = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id)
     .populate("club", "name")
-    .populate("totalResults.owner", "name city imageUrl phone");
+    .populate("totalResults.owner", "name city imageUrl phone")
+    .populate("doubleStampResults.owner", "name city imageUrl phone");
 
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
 
@@ -151,6 +180,7 @@ export const getTournamentTotal = async (req, res) => {
       pigeons: tournament.pigeons,
     },
     totalResults: tournament.totalResults,
+    doubleStampResults: tournament.doubleStampResults,
   });
 };
 
@@ -350,7 +380,7 @@ export const saveOwnerDayResult = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id);
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
 
-  const { ownerId, times, startTime } = req.body;
+  const { ownerId, times, startTime, isDoubleStamp } = req.body;
   if (!ownerId || !Array.isArray(times)) {
     return errorResponse(res, "ownerId and times[] required", 400);
   }
@@ -376,8 +406,9 @@ export const saveOwnerDayResult = async (req, res) => {
     day.results[existingIdx].times = times;
     day.results[existingIdx].startTime = finalStartTime;
     day.results[existingIdx].total = total;
+    day.results[existingIdx].isDoubleStamp = !!isDoubleStamp;
   } else {
-    day.results.push({ owner: ownerId, times, startTime: finalStartTime, total });
+    day.results.push({ owner: ownerId, times, startTime: finalStartTime, total, isDoubleStamp: !!isDoubleStamp });
   }
 
   const totalPigeonSlots = (tournament.pigeons + tournament.helperPigeons) * (tournament.owners?.length || 0);
@@ -385,6 +416,7 @@ export const saveOwnerDayResult = async (req, res) => {
   day.remaining = Math.max(0, totalPigeonSlots - day.landed);
 
   recomputeTotalResults(tournament);
+  recomputeDoubleStampResults(tournament);
 
   await tournament.save();
 

@@ -45,10 +45,10 @@ export const tournamentApi = createApi({
       invalidatesTags: ["Tournament"],
     }),
     saveOwnerDayResult: builder.mutation({
-      query: ({ id, date, ownerId, times, startTime }) => ({
+      query: ({ id, date, ownerId, times, startTime, isDoubleStamp }) => ({
         url: `/tournaments/${id}/day/${date}/owner-result`,
         method: "PUT",
-        body: { ownerId, times, startTime },
+        body: { ownerId, times, startTime, isDoubleStamp },
       }),
       invalidatesTags: ["Tournament"],
     }),

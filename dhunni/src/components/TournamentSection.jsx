@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
   useGetTournamentsQuery,
@@ -20,39 +20,47 @@ function timeToMinutes(t) {
   return h * 60 + m;
 }
 
+function StampIcon() {
+  return (
+    <span title="Double Stamp" className="ml-1 text-[10px]">🏷️</span>
+  );
+}
+
 function TournamentBlock({ tournament }) {
   const dates = tournament.dates || [];
   const [activeTab, setActiveTab] = useState(0);
   const isTotal = activeTab === dates.length;
+  const isDoubleTotal = activeTab === dates.length + 1;
 
   const selectedDate =
-    !isTotal && dates[activeTab]
+    !isTotal && !isDoubleTotal && dates[activeTab]
       ? new Date(dates[activeTab]).toISOString().split("T")[0]
       : null;
 
   const { data: dayData, isLoading: dayLoading } = useGetTournamentByDayQuery(
     { id: tournament._id, date: selectedDate },
-    { skip: !selectedDate || isTotal }
+    { skip: !selectedDate }
   );
 
   const { data: totalData, isLoading: totalLoading } = useGetTournamentTotalQuery(
     tournament._id,
-    { skip: !isTotal }
+    { skip: !isTotal && !isDoubleTotal }
   );
 
   const dayResults = dayData?.data?.day?.results || [];
   const totalResults = totalData?.data?.totalResults || [];
+  const doubleStampResults = totalData?.data?.doubleStampResults || [];
   const dayStats = dayData?.data?.day || {};
   const isLoading = dayLoading || totalLoading;
 
-  const results = isTotal ? totalResults : dayResults;
+  const results = isDoubleTotal ? doubleStampResults : isTotal ? totalResults : dayResults;
   const pigeons = tournament.pigeons || 3;
 
   const totalPigeonSlots =
     ((tournament.pigeons || 0) + (tournament.helperPigeons || 0)) *
     (tournament.owners?.length || 0);
 
-  const landed = isTotal
+  const landed = isTotal || isDoubleTotal
     ? (() => {
       const ownerSlots = {};
       (tournament.tournamentDays || []).forEach((day) => {
@@ -70,13 +78,13 @@ function TournamentBlock({ tournament }) {
 
   const remaining = Math.max(0, totalPigeonSlots - landed);
 
-  const totalDateCols = isTotal
+  const totalDateCols = (isTotal || isDoubleTotal)
     ? dates.map((d) => formatDate(d))
     : [];
 
   // Winning pigeon = highest individual clock-time cell across all owners, for the current day
   const winningPigeon = (() => {
-    if (isTotal) return null;
+    if (isTotal || isDoubleTotal) return null;
     let best = null;
     tournament.owners?.forEach((owner) => {
       const matched = results.find(
@@ -94,6 +102,47 @@ function TournamentBlock({ tournament }) {
     });
     return best;
   })();
+
+  // --- Blink-on-new-record logic ---
+  const [blinkingRows, setBlinkingRows] = useState({}); // ownerId -> true
+  const lastTotalsRef = useRef({}); // key: `${tabKey}:${ownerId}` -> total string
+  const blinkTimersRef = useRef({});
+
+  const tabKey = isDoubleTotal ? "double" : isTotal ? "total" : selectedDate || "loading";
+
+  useEffect(() => {
+    if (isLoading || !tournament.owners) return;
+
+    tournament.owners.forEach((owner) => {
+      const matched = results.find(
+        (r) => String(r.owner?._id || r.owner) === String(owner._id)
+      );
+      const currentTotal = matched?.total || null;
+      const key = `${tabKey}:${owner._id}`;
+      const prevTotal = lastTotalsRef.current[key];
+
+      if (currentTotal && prevTotal !== undefined && prevTotal !== currentTotal) {
+        setBlinkingRows((prev) => ({ ...prev, [owner._id]: true }));
+        if (blinkTimersRef.current[owner._id]) clearTimeout(blinkTimersRef.current[owner._id]);
+        blinkTimersRef.current[owner._id] = setTimeout(() => {
+          setBlinkingRows((prev) => {
+            const next = { ...prev };
+            delete next[owner._id];
+            return next;
+          });
+        }, 3000);
+      }
+
+      lastTotalsRef.current[key] = currentTotal;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results, isLoading, tabKey]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(blinkTimersRef.current).forEach(clearTimeout);
+    };
+  }, []);
 
   return (
     <section className="w-full mb-10">
@@ -125,9 +174,19 @@ function TournamentBlock({ tournament }) {
         >
           Total
         </button>
+        <button
+          onClick={() => setActiveTab(dates.length + 1)}
+          className={`px-5 py-1.5 text-xs sm:text-sm font-sans font-medium rounded border-2 transition-colors
+            ${isDoubleTotal
+              ? "border-navy bg-navy text-white font-bold"
+              : "border-navy text-navy bg-white hover:bg-navypale"
+            }`}
+        >
+          🏷️ Double Stamp Total
+        </button>
       </div>
 
-      {/* Info box — matches client's reference: light bg, left accent border */}
+      {/* Info box */}
       <div className="mx-4 mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-4 py-3 text-xs sm:text-sm text-dark">
         <p>
           Lofts: <strong>{tournament.lofts || tournament.owners?.length || 0}</strong>,
@@ -135,7 +194,7 @@ function TournamentBlock({ tournament }) {
           {" "}Pigeons landed: <strong>{landed}</strong>,
           {" "}Pigeons remaining: <strong>{remaining}</strong>
         </p>
-        {!isTotal && (
+        {!isTotal && !isDoubleTotal && (
           <p className="mt-2">
             Todays winner pigeon time:{" "}
             {winningPigeon ? (
@@ -157,7 +216,7 @@ function TournamentBlock({ tournament }) {
           <thead>
             <tr className="bg-navy">
               <th className="pl-24 sm:pl-28 pr-3 py-3 text-left text-white font-semibold">Name</th>
-              {isTotal
+              {(isTotal || isDoubleTotal)
                 ? totalDateCols.map((col, i) => (
                   <th key={i} className="px-3 py-3 text-center text-white font-semibold whitespace-nowrap">{col}</th>
                 ))
@@ -186,10 +245,11 @@ function TournamentBlock({ tournament }) {
                 const matched = results.find(
                   (r) => String(r.owner?._id || r.owner) === String(owner._id)
                 );
+                const isBlinking = !!blinkingRows[owner._id];
                 return (
                   <tr
                     key={owner._id}
-                    className={`border-t border-gray transition-colors hover:bg-cyan-100 ${i % 2 === 0 ? "bg-white" : "bg-sky-50"}`}
+                    className={`border-t border-gray transition-colors hover:bg-cyan-100 ${isBlinking ? "animate-pulse bg-yellow-200" : i % 2 === 0 ? "bg-white" : "bg-sky-50"}`}
                   >
                     <td className="px-3 py-1.5">
                       <div className="flex items-center gap-3">
@@ -214,7 +274,7 @@ function TournamentBlock({ tournament }) {
                       </div>
                     </td>
 
-                    {isTotal
+                    {(isTotal || isDoubleTotal)
                       ? dates.map((d, ti) => {
                         const dayIso = new Date(d).toISOString().split("T")[0];
                         const dayObj = tournament.tournamentDays?.find(
@@ -223,9 +283,16 @@ function TournamentBlock({ tournament }) {
                         const dayResult = dayObj?.results?.find(
                           (r) => String(r.owner) === String(owner._id)
                         );
+                        // Double Stamp Total tab: only show days that were actually double-stamped
+                        if (isDoubleTotal && !dayResult?.isDoubleStamp) {
+                          return (
+                            <td key={ti} className="px-2 py-3 text-center text-gray">—</td>
+                          );
+                        }
                         return (
                           <td key={ti} className="px-2 py-3 text-center text-gray">
                             {dayResult?.total || "—"}
+                            {dayResult?.isDoubleStamp && <StampIcon />}
                           </td>
                         );
                       })
@@ -238,8 +305,8 @@ function TournamentBlock({ tournament }) {
                           <td
                             key={ti}
                             className={`px-2 py-1.5 text-center transition-colors ${isWinningCell
-                                ? "bg-cyan-600 text-white font-bold"
-                                : "text-gray"
+                              ? "bg-cyan-600 text-white font-bold"
+                              : "text-gray"
                               }`}
                           >
                             {matched?.times?.[ti + 1] || "—"}
@@ -250,6 +317,7 @@ function TournamentBlock({ tournament }) {
 
                     <td className="px-3 py-1.5 text-center font-bold text-navy">
                       {matched?.total || "No Result"}
+                      {!isTotal && !isDoubleTotal && matched?.isDoubleStamp && <StampIcon />}
                     </td>
                   </tr>
                 );
@@ -265,12 +333,10 @@ function TournamentBlock({ tournament }) {
 export default function TournamentSection({ clubId }) {
   const { id } = useParams();
 
-  // Single-tournament view — via /results/:id (click se aaya hua specific tournament)
   const { data: singleData, isLoading: singleLoading } = useGetTournamentQuery(id, {
     skip: !id,
   });
 
-  // Home page view — sirf "On Screen" tournament
   const { data, isLoading } = useGetTournamentsQuery(
     `?screen=${encodeURIComponent("On Screen")}`,
     { skip: !!id }

@@ -42,10 +42,12 @@ export default function CreateResultPage() {
 
     const [editingCell, setEditingCell] = useState(null); // { ownerId, field, index }
     const [draftData, setDraftData] = useState({}); // { ownerId: { times: [], startTime: "" } }
+    const [doubleStamp, setDoubleStamp] = useState({}); // { ownerId: bool }
 
     useEffect(() => {
         setDraftData({});
         setEditingCell(null);
+        setDoubleStamp({});
     }, [activeDate]);
 
     const getOwnerDraft = (ownerId) => {
@@ -74,6 +76,12 @@ export default function CreateResultPage() {
         });
     };
 
+    const getDoubleStamp = (ownerId) => {
+        if (ownerId in doubleStamp) return doubleStamp[ownerId];
+        const existing = results.find((r) => r.owner?._id === ownerId);
+        return !!existing?.isDoubleStamp;
+    };
+
     const handleSave = async (ownerId) => {
         try {
             const draft = draftData[ownerId] || getOwnerDraft(ownerId);
@@ -83,6 +91,7 @@ export default function CreateResultPage() {
                 ownerId,
                 times: draft.times,
                 startTime: draft.startTime,
+                isDoubleStamp: getDoubleStamp(ownerId),
             }).unwrap();
             toast.success("Result saved!");
             setEditingCell(null);
@@ -147,13 +156,14 @@ export default function CreateResultPage() {
                                     </th>
                                 ))}
                                 <th className="px-3 py-3 text-center text-slate-500 font-medium">Result</th>
+                                <th className="px-3 py-3 text-center text-slate-500 font-medium">Double Stamp</th>
                                 <th className="px-3 py-3 text-center text-slate-500 font-medium">Save</th>
                             </tr>
                         </thead>
                         <tbody>
                             {dayLoading ? (
                                 <tr>
-                                    <td colSpan={totalSlots + 5} className="text-center py-8 text-slate-400">
+                                    <td colSpan={totalSlots + 6} className="text-center py-8 text-slate-400">
                                         Loading...
                                     </td>
                                 </tr>
@@ -270,6 +280,16 @@ export default function CreateResultPage() {
 
                                             <td className="px-3 py-3 text-center font-bold text-[#122654]">
                                                 {existing?.total || "00:00:00"}
+                                            </td>
+                                            <td className="px-3 py-3 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={getDoubleStamp(owner._id)}
+                                                    onChange={(e) =>
+                                                        setDoubleStamp((prev) => ({ ...prev, [owner._id]: e.target.checked }))
+                                                    }
+                                                    className="w-4 h-4 accent-[#0ea5e9] cursor-pointer"
+                                                />
                                             </td>
                                             <td className="px-3 py-3 text-center">
                                                 <button
