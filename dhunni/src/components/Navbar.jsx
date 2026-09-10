@@ -55,21 +55,29 @@ export default function Navbar() {
         </div>
 
         {/* Mobile — always-visible stacked list, no hamburger */}
-        <div className="lg:hidden py-2">
+               {/* Mobile — always-visible stacked list, no hamburger — fluid sizing */}
+               <div className="lg:hidden" style={{ padding: "clamp(4px, 2vw, 12px) 0" }}>
           <div className="flex flex-col divide-y divide-white/10">
             {allLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`text-base font-sans py-3 transition-colors
+                style={{
+                  fontSize: "clamp(11px, 3.2vw, 16px)",
+                  padding: "clamp(6px, 2.2vw, 12px) 0",
+                }}
+                className={`font-sans transition-colors
                   ${pathname === link.to ? "text-white font-bold" : "text-blue-200"}`}
               >
                 {link.label}
               </Link>
             ))}
           </div>
-          <div className="flex items-center justify-between pt-3 pb-1 text-xs text-blue-200">
-            <div className="flex flex-col leading-tight">
+          <div
+            className="flex items-center justify-between text-blue-200"
+            style={{ paddingTop: "clamp(6px, 2vw, 12px)", paddingBottom: "clamp(3px, 1vw, 6px)" }}
+          >
+            <div className="flex flex-col leading-tight" style={{ fontSize: "clamp(9px, 2.5vw, 12px)" }}>
               <span>{formattedDate}</span>
               <span>{formattedTime}</span>
             </div>
@@ -77,7 +85,11 @@ export default function Navbar() {
               href="https://sona-punjab-admin.onrender.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-semibold px-4 py-2 rounded border border-white/40 text-white"
+              style={{
+                fontSize: "clamp(11px, 3vw, 14px)",
+                padding: "clamp(6px, 1.8vw, 8px) clamp(10px, 3vw, 16px)",
+              }}
+              className="font-semibold rounded border border-white/40 text-white"
             >
               Admin Login
             </a>
