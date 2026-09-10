@@ -311,7 +311,7 @@ function TournamentBlock({ tournament }) {
         <table className="w-full text-[10px] sm:text-sm font-sans min-w-[500px]">
           <thead>
             <tr className="bg-navy">
-              <th className="sticky left-0 z-20 bg-navy pl-2 pr-2 py-2 sm:static sm:pl-24 sm:pr-3 sm:py-3 text-left text-white font-semibold">
+              <th className="pl-2 pr-2 py-2 sm:pl-24 sm:pr-3 sm:py-3 text-left text-white font-semibold">
                 Name
               </th>
               {(isTotal || isDoubleTotal)
@@ -354,7 +354,7 @@ function TournamentBlock({ tournament }) {
                     key={owner._id}
                     className={`border-t border-gray transition-colors hover:bg-cyan-100 ${isBlinking ? "animate-pulse" : ""} ${rowBg}`}
                   >
-                    <td className={`sticky left-0 z-10 px-2 py-1 sm:static sm:px-3 sm:py-1.5 ${rowBg}`}>
+                    <td className={`px-2 py-1 sm:px-3 sm:py-1.5 ${rowBg}`}>
                       <div className="flex items-center gap-1.5 sm:gap-3">
                         <span className="text-dark font-bold w-4 sm:w-5 text-center shrink-0 text-[10px] sm:text-sm">{i + 1}</span>
                         {owner.imageUrl ? (
