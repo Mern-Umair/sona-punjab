@@ -290,25 +290,23 @@ function TournamentBlock({ tournament }) {
                 const isBlinking = !!blinkingRows[owner._id];
                 const rowBg = isBlinking
                   ? "bg-yellow-200"
-                  : i % 2 === 0
-                    ? "bg-green-50 sm:bg-white"
-                    : "bg-white sm:bg-sky-50";
+                  : "bg-white";
                 return (
                   <tr
                     key={owner._id}
-                    className={`border-t border-gray transition-colors hover:bg-cyan-100 ${isBlinking ? "animate-pulse" : ""} ${rowBg}`}
+                    className={`border-t border-gray transition-colors hover:bg-blue-50 ${isBlinking ? "animate-pulse" : ""} ${isBlinking ? rowBg : ""}`}
                   >
-                    <td className={`px-1 py-1 sm:px-3 sm:py-1.5 ${rowBg}`}>
+                    <td className="px-1 py-1 sm:px-3 sm:py-1.5">
                       <div className="flex items-center gap-1 sm:gap-3">
                         <span className="text-dark font-bold w-3 sm:w-5 text-center shrink-0 text-[8px] sm:text-sm">{i + 1}</span>
                         {owner.imageUrl ? (
                           <img
                             src={owner.imageUrl}
                             alt={owner.name}
-                            className="w-5 h-5 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-gold shrink-0"
+                            className="w-5 h-5 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-blue-500 shrink-0"
                           />
                         ) : (
-                          <div className="w-5 h-5 sm:w-14 sm:h-14 rounded-full bg-navypale border-2 border-gold flex items-center justify-center shrink-0">
+                          <div className="w-5 h-5 sm:w-14 sm:h-14 rounded-full bg-navypale border-2 border-blue-500 flex items-center justify-center shrink-0">
                             <span className="text-navy text-[7px] sm:text-sm font-bold">
                               {owner.name?.charAt(0) || "?"}
                             </span>
@@ -351,7 +349,7 @@ function TournamentBlock({ tournament }) {
                           <td
                             key={ti}
                             className={`px-0 py-1 sm:px-2 sm:py-1.5 text-center transition-colors whitespace-nowrap text-[7px] sm:text-sm ${isWinningCell
-                              ? "bg-pink-400 sm:bg-cyan-600 text-white font-bold"
+                              ? "bg-cyan-600 text-white font-bold"
                               : "text-gray"
                               }`}
                           >
