@@ -197,17 +197,17 @@ function TournamentBlock({ tournament }) {
   }, []);
 
   return (
-    <section className="w-full mb-10">
-      <h2 className="text-navy font-heading font-bold text-2xl sm:text-3xl text-center py-5">
+    <section className="w-full mb-1 sm:mb-10">
+      <h2 className="text-navy font-heading font-bold text-lg sm:text-3xl text-center py-2 sm:py-5 px-2">
         {tournament.name}
       </h2>
 
-      <div className="flex justify-center items-center gap-1.5 sm:gap-2 flex-wrap px-4 pb-4">
+      <div className="flex justify-center items-center gap-1 sm:gap-2 flex-wrap px-2 sm:px-4 pb-2 sm:pb-4">
         {dates.map((date, i) => (
           <button
             key={i}
             onClick={() => setActiveTab(i)}
-            className={`px-3 py-1 sm:px-5 sm:py-1.5 text-[11px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
+            className={`px-2 py-0.5 sm:px-5 sm:py-1.5 text-[9px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
               ${activeTab === i
                 ? "border-navy bg-white text-navy font-bold"
                 : "border-navy text-navy bg-white hover:bg-navypale"
@@ -218,7 +218,7 @@ function TournamentBlock({ tournament }) {
         ))}
         <button
           onClick={() => setActiveTab(dates.length)}
-          className={`px-3 py-1 sm:px-5 sm:py-1.5 text-[11px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
+          className={`px-2 py-0.5 sm:px-5 sm:py-1.5 text-[9px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
             ${isTotal
               ? "border-navy bg-white text-navy font-bold"
               : "border-navy text-navy bg-white hover:bg-navypale"
@@ -228,7 +228,7 @@ function TournamentBlock({ tournament }) {
         </button>
         <button
           onClick={() => setActiveTab(dates.length + 1)}
-          className={`px-3 py-1 sm:px-5 sm:py-1.5 text-[11px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
+          className={`px-2 py-0.5 sm:px-5 sm:py-1.5 text-[9px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
             ${isDoubleTotal
               ? "border-navy bg-navy text-white font-bold"
               : "border-navy text-navy bg-white hover:bg-navypale"
@@ -238,91 +238,35 @@ function TournamentBlock({ tournament }) {
         </button>
       </div>
 
-      {/* ===== MOBILE-ONLY: First/Last Winner bars ===== */}
-      {!isTotal && !isDoubleTotal && (
-        <div className="sm:hidden mx-4 mb-2 space-y-1.5">
-          <div className="bg-gold rounded px-3 py-2 flex items-center justify-between text-white text-[11px] font-bold">
-            <span>First Winner: {firstWinnerPigeon?.ownerName || "—"}</span>
-            <span>Time: {firstWinnerPigeon?.time || "—"}</span>
-          </div>
-          <div className="bg-goldd rounded px-3 py-2 flex items-center justify-between text-white text-[11px] font-bold">
-            <span>Last Winner: {lastWinnerPigeon?.ownerName || "—"}</span>
-            <span>Time: {lastWinnerPigeon?.time || "—"}</span>
-          </div>
-        </div>
-      )}
-
-      {/* ===== MOBILE-ONLY: Stats card with icons ===== */}
-      <div className="sm:hidden mx-4 mb-3 bg-white border border-gray rounded-lg shadow-sm px-2 py-3">
-        <div className="grid grid-cols-4 divide-x divide-gray text-center">
-          <div className="flex flex-col items-center gap-1 px-1">
-            <span className="text-navy"><HouseIcon /></span>
-            <span className="text-navy text-[11px] font-bold leading-tight">
-              {tournament.lofts || tournament.owners?.length || 0} Lofts
-            </span>
-          </div>
-          <div className="flex flex-col items-center gap-1 px-1">
-            <span className="text-navy"><ArrowDownIcon /></span>
-            <span className="text-navy text-[11px] font-bold leading-tight">
-              {totalPigeonSlots} Total
-            </span>
-          </div>
-          <div className="flex flex-col items-center gap-1 px-1">
-            <span className="text-navy"><CheckIcon /></span>
-            <span className="text-navy text-[11px] font-bold leading-tight">
-              {landed} Landed
-            </span>
-          </div>
-          <div className="flex flex-col items-center gap-1 px-1">
-            <span className="text-navy"><ClockIcon /></span>
-            <span className="text-navy text-[11px] font-bold leading-tight">
-              {remaining} Remaining
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ===== DESKTOP-ONLY: original info box (unchanged) ===== */}
-      <div className="hidden sm:block mx-4 mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-4 py-3 text-xs sm:text-sm text-dark">
+      {/* Info box — same design everywhere, font-size fluid on small screens */}
+      <div
+        className="mx-2 sm:mx-4 mb-2 sm:mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-2 py-1.5 sm:px-4 sm:py-3 text-dark"
+        style={{ fontSize: "clamp(9px, 2.4vw, 14px)" }}
+      >
         <p>
           Lofts: <strong>{tournament.lofts || tournament.owners?.length || 0}</strong>,
           {" "}Total pigeons: <strong>{totalPigeonSlots}</strong>,
           {" "}Pigeons landed: <strong>{landed}</strong>,
           {" "}Pigeons remaining: <strong>{remaining}</strong>
         </p>
-        {!isTotal && !isDoubleTotal && (
-          <p className="mt-2">
-            Todays winner pigeon time:{" "}
-            {lastWinnerPigeon ? (
-              <>
-                <span className="bg-cyan-600 text-white font-bold px-2 py-0.5 rounded">
-                  {lastWinnerPigeon.time}
-                </span>
-                {", "}{lastWinnerPigeon.ownerName}
-              </>
-            ) : (
-              "No results yet"
-            )}
-          </p>
-        )}
       </div>
 
-      <div className="mx-4 overflow-x-auto border border-gray">
-        <table className="w-full text-[10px] sm:text-sm font-sans min-w-[500px]">
+      <div className="mx-2 sm:mx-4 overflow-x-auto border border-gray">
+        <table className="w-full text-[9px] sm:text-sm font-sans table-fixed sm:table-auto">
           <thead>
             <tr className="bg-navy">
-              <th className="pl-2 pr-2 py-2 sm:pl-24 sm:pr-3 sm:py-3 text-left text-white font-semibold">
+              <th className="pl-1 pr-1 py-1.5 sm:pl-24 sm:pr-3 sm:py-3 text-left text-white font-semibold w-[110px] sm:w-auto">
                 Name
               </th>
               {(isTotal || isDoubleTotal)
                 ? totalDateCols.map((col, i) => (
-                  <th key={i} className="px-2 py-2 sm:px-3 sm:py-3 text-center text-white font-semibold whitespace-nowrap">{col}</th>
+                  <th key={i} className="px-0.5 py-1.5 sm:px-3 sm:py-3 text-center text-white font-semibold whitespace-nowrap">{col}</th>
                 ))
                 : Array.from({ length: pigeons }).map((_, n) => (
-                  <th key={n} className="px-1.5 py-2 sm:px-2 sm:py-3 text-center text-white font-semibold">#{n + 1}</th>
+                  <th key={n} className="px-0 py-1.5 sm:px-2 sm:py-3 text-center text-white font-semibold w-[32px] sm:w-auto">#{n + 1}</th>
                 ))
               }
-              <th className="px-2 py-2 sm:px-3 sm:py-3 text-center text-white font-semibold">Total</th>
+              <th className="px-0.5 py-1.5 sm:px-3 sm:py-3 text-center text-white font-semibold w-[42px] sm:w-auto">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -354,25 +298,25 @@ function TournamentBlock({ tournament }) {
                     key={owner._id}
                     className={`border-t border-gray transition-colors hover:bg-cyan-100 ${isBlinking ? "animate-pulse" : ""} ${rowBg}`}
                   >
-                    <td className={`px-2 py-1 sm:px-3 sm:py-1.5 ${rowBg}`}>
-                      <div className="flex items-center gap-1.5 sm:gap-3">
-                        <span className="text-dark font-bold w-4 sm:w-5 text-center shrink-0 text-[10px] sm:text-sm">{i + 1}</span>
+                    <td className={`px-1 py-1 sm:px-3 sm:py-1.5 ${rowBg}`}>
+                      <div className="flex items-center gap-1 sm:gap-3">
+                        <span className="text-dark font-bold w-3 sm:w-5 text-center shrink-0 text-[8px] sm:text-sm">{i + 1}</span>
                         {owner.imageUrl ? (
                           <img
                             src={owner.imageUrl}
                             alt={owner.name}
-                            className="w-7 h-7 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-gold shrink-0"
+                            className="w-5 h-5 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-gold shrink-0"
                           />
                         ) : (
-                          <div className="w-7 h-7 sm:w-14 sm:h-14 rounded-full bg-navypale border-2 border-gold flex items-center justify-center shrink-0">
-                            <span className="text-navy text-[9px] sm:text-sm font-bold">
+                          <div className="w-5 h-5 sm:w-14 sm:h-14 rounded-full bg-navypale border-2 border-gold flex items-center justify-center shrink-0">
+                            <span className="text-navy text-[7px] sm:text-sm font-bold">
                               {owner.name?.charAt(0) || "?"}
                             </span>
                           </div>
                         )}
-                        <div>
-                          <p className="text-navy font-semibold leading-tight text-[10px] sm:text-sm whitespace-nowrap">{owner.name || "—"}</p>
-                          {owner.city && <p className="text-gray text-[9px] sm:text-[11px]">{owner.city}</p>}
+                        <div className="min-w-0">
+                          <p className="text-navy font-semibold leading-tight text-[8px] sm:text-sm truncate max-w-[70px] sm:max-w-none">{owner.name || "—"}</p>
+                          {owner.city && <p className="text-gray text-[7px] sm:text-[11px] truncate max-w-[70px] sm:max-w-none">{owner.city}</p>}
                         </div>
                       </div>
                     </td>
@@ -388,11 +332,11 @@ function TournamentBlock({ tournament }) {
                         );
                         if (isDoubleTotal && !dayResult?.isDoubleStamp) {
                           return (
-                            <td key={ti} className="px-2 py-2 sm:py-3 text-center text-gray">—</td>
+                            <td key={ti} className="px-0.5 py-1.5 sm:py-3 text-center text-gray text-[8px] sm:text-sm">—</td>
                           );
                         }
                         return (
-                          <td key={ti} className="px-2 py-2 sm:py-3 text-center text-gray whitespace-nowrap">
+                          <td key={ti} className="px-0.5 py-1.5 sm:py-3 text-center text-gray whitespace-nowrap text-[8px] sm:text-sm">
                             {dayResult?.total || "—"}
                             {dayResult?.isDoubleStamp && <StampIcon />}
                           </td>
@@ -406,18 +350,19 @@ function TournamentBlock({ tournament }) {
                         return (
                           <td
                             key={ti}
-                            className={`px-1.5 py-1 sm:px-2 sm:py-1.5 text-center transition-colors whitespace-nowrap ${isWinningCell
+                            className={`px-0 py-1 sm:px-2 sm:py-1.5 text-center transition-colors whitespace-nowrap text-[7px] sm:text-sm ${isWinningCell
                               ? "bg-pink-400 sm:bg-cyan-600 text-white font-bold"
                               : "text-gray"
                               }`}
                           >
+
                             {matched?.times?.[ti + 1] || "—"}
                           </td>
                         );
                       })
                     }
 
-                    <td className="px-2 py-1 sm:px-3 sm:py-1.5 text-center font-bold text-navy whitespace-nowrap">
+                    <td className="px-0.5 py-1 sm:px-3 sm:py-1.5 text-center font-bold text-navy whitespace-nowrap text-[7px] sm:text-sm">
                       {matched?.total || "No Result"}
                       {!isTotal && !isDoubleTotal && matched?.isDoubleStamp && <StampIcon />}
                     </td>
@@ -464,7 +409,7 @@ export default function TournamentSection({ clubId }) {
     }
 
     return (
-      <div className="py-4">
+      <div className="py-1 sm:py-4">
         <TournamentBlock tournament={tournament} />
       </div>
     );
@@ -493,7 +438,7 @@ export default function TournamentSection({ clubId }) {
   }
 
   return (
-    <div className="py-4">
+    <div className="py-1 sm:py-4">
       {filtered.map((t) => (
         <TournamentBlock key={t._id} tournament={t} />
       ))}

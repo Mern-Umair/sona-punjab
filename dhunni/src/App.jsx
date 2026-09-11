@@ -4,6 +4,7 @@ import HeroBanner from "./components/HeroBanner";
 import TournamentSection from "./components/TournamentSection";
 import ClubTournaments from "./components/ClubTournaments";
 import Headline from "./components/Headline";
+import Footer from "./components/Footer";
 import { useParams } from "react-router-dom";
 
 function ClubPage() {
@@ -14,6 +15,7 @@ function ClubPage() {
       <Navbar />
       <Headline />
       <ClubTournaments clubId={clubId} />
+      <Footer />
     </div>
   );
 }
@@ -27,6 +29,7 @@ const App = () => {
           <Navbar />
           <Headline />
           <TournamentSection />
+          <Footer />
         </div>
       } />
       <Route path="/club/:clubId" element={<ClubPage />} />
@@ -36,6 +39,7 @@ const App = () => {
           <Navbar />
           <Headline />
           <TournamentSection />
+          <Footer />
         </div>
       } />
     </Routes>
