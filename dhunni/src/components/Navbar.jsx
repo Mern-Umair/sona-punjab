@@ -14,14 +14,18 @@ export default function Navbar() {
     return () => clearInterval(t);
   }, []);
 
-  const formattedDate = now.toLocaleDateString("en-GB").split("/").join(".");
-  const formattedTime = now.toLocaleTimeString("en-GB");
+
+  const formattedDate = now
+    .toLocaleDateString("en-GB", { timeZone: "Asia/Karachi" })
+    .split("/")
+    .join(".");
+  const formattedTime = now.toLocaleTimeString("en-GB", { timeZone: "Asia/Karachi" });
 
   const allLinks = [{ label: "Home", to: "/" }, ...clubs.map((c) => ({ label: c.name, to: `/club/${c._id}` }))];
 
   return (
-    <header className="bg-navy sticky top-0 z-50 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-navy sticky top-0 z-50 shadow-md w-full">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Desktop row */}
         <div className="hidden lg:flex items-center justify-between h-14">
@@ -53,49 +57,52 @@ export default function Navbar() {
             </a>
           </div>
         </div>
+      </div>
 
-        {/* Mobile — always-visible stacked list, no hamburger */}
-               {/* Mobile — always-visible stacked list, no hamburger — fluid sizing */}
-               <div className="lg:hidden" style={{ padding: "clamp(4px, 2vw, 12px) 0" }}>
-          <div className="flex flex-col divide-y divide-white/10">
-            {allLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                style={{
-                  fontSize: "clamp(11px, 3.2vw, 16px)",
-                  padding: "clamp(6px, 2.2vw, 12px) 0",
-                }}
-                className={`font-sans transition-colors
-                  ${pathname === link.to ? "text-white font-bold" : "text-blue-200"}`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-          <div
-            className="flex items-center justify-between text-blue-200"
-            style={{ paddingTop: "clamp(6px, 2vw, 12px)", paddingBottom: "clamp(3px, 1vw, 6px)" }}
-          >
-            <div className="flex flex-col leading-tight" style={{ fontSize: "clamp(9px, 2.5vw, 12px)" }}>
-              <span>{formattedDate}</span>
-              <span>{formattedTime}</span>
-            </div>
-            <a
-              href="https://sona-punjab-admin.onrender.com"
-              target="_blank"
-              rel="noopener noreferrer"
+      {/* Mobile — full-bleed row, always edge-to-edge regardless of screen width */}
+      <div className="lg:hidden bg-navypale w-screen relative left-1/2 -translate-x-1/2 flex items-center justify-between px-2">
+        <div
+          className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0"
+          style={{ padding: "clamp(4px, 2vw, 10px) 0" }}
+        >
+          {allLinks.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
               style={{
-                fontSize: "clamp(11px, 3vw, 14px)",
-                padding: "clamp(6px, 1.8vw, 8px) clamp(10px, 3vw, 16px)",
+                fontSize: "clamp(10px, 2.6vw, 14px)",
+                padding: "clamp(5px, 1.6vw, 8px) clamp(6px, 2vw, 12px)",
               }}
-              className="font-semibold rounded border border-white/40 text-white"
+              className={`font-sans whitespace-nowrap shrink-0 rounded transition-colors
+                ${pathname === link.to ? "bg-navy text-white font-semibold" : "text-navy hover:bg-white/50"}`}
             >
-              Admin Login
-            </a>
-          </div>
+              {link.label}
+            </Link>
+          ))}
         </div>
-      </div >
-    </header >
+
+        <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-navy/10">
+          <div
+            className="flex flex-col leading-tight text-navy text-right shrink-0"
+            style={{ fontSize: "clamp(8px, 2.2vw, 12px)" }}
+          >
+            <span>{formattedDate}</span>
+            <span>{formattedTime}</span>
+          </div>
+          <a
+            href="https://sona-punjab-admin.onrender.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: "clamp(9px, 2.2vw, 14px)",
+              padding: "clamp(5px, 1.4vw, 8px) clamp(7px, 2vw, 16px)",
+            }}
+            className="font-semibold rounded border border-navy text-navy hover:bg-navy hover:text-white transition-colors whitespace-nowrap shrink-0"
+          >
+            Admin Login
+          </a>
+        </div>
+      </div>
+    </header>
   );
 }

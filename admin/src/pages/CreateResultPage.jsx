@@ -12,9 +12,29 @@ function formatDate(dateStr) {
     return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
 }
 
+// Jo bhi time admin apni local ghadi se enter kare, usay Pakistan time (UTC+5) mein convert kar deta hai
+function toPakistanTime(hhmm) {
+    if (!hhmm) return hhmm;
+    const [h, m] = hhmm.split(":").map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+
+    const localOffsetMinutes = -new Date().getTimezoneOffset(); // browser ka apna UTC offset
+    const pakistanOffsetMinutes = 5 * 60; // Pakistan = UTC+5, hamesha fixed
+    const diff = pakistanOffsetMinutes - localOffsetMinutes;
+
+    let totalMinutes = h * 60 + m + diff;
+    totalMinutes = ((totalMinutes % 1440) + 1440) % 1440; // 24-hour wrap-around
+
+    const newH = Math.floor(totalMinutes / 60);
+    const newM = totalMinutes % 60;
+    return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+}
+
 export default function CreateResultPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+
+
 
     const { data: tData, isLoading: tLoading } = useGetTournamentQuery(id);
     const tournament = tData?.data;
@@ -89,8 +109,8 @@ export default function CreateResultPage() {
                 id,
                 date: activeDate,
                 ownerId,
-                times: draft.times,
-                startTime: draft.startTime,
+                times: draft.times.map((t) => toPakistanTime(t)),
+                startTime: toPakistanTime(draft.startTime),
                 isDoubleStamp: getDoubleStamp(ownerId),
             }).unwrap();
             toast.success("Result saved!");
@@ -118,6 +138,8 @@ export default function CreateResultPage() {
                     Create Result — {tournament?.name}
                 </h2>
             </div>
+
+
 
             <div className="bg-white rounded-xl border border-slate-200 p-4">
                 <div className="flex flex-wrap gap-2 mb-4">

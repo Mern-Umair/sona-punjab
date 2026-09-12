@@ -10,35 +10,42 @@ import { useParams } from "react-router-dom";
 function ClubPage() {
   const { clubId } = useParams();
   return (
-    <div className="bg-light min-h-screen flex flex-col">
+    <div className="bg-light min-h-screen flex flex-col overflow-x-hidden">
       <HeroBanner />
       <Navbar />
-      <Headline />
-      <ClubTournaments clubId={clubId} />
+      <div className="flex-1 flex flex-col">
+        <Headline />
+        <ClubTournaments clubId={clubId} />
+      </div>
       <Footer />
     </div>
   );
 }
 
+
 const App = () => {
   return (
     <Routes>
       <Route path="/" element={
-        <div className="bg-light min-h-screen flex flex-col">
+        <div className="bg-light min-h-screen flex flex-col overflow-x-hidden">
           <HeroBanner />
           <Navbar />
-          <Headline />
-          <TournamentSection />
+          <div className="flex-1 flex flex-col">
+            <Headline />
+            <TournamentSection />
+          </div>
           <Footer />
         </div>
       } />
       <Route path="/club/:clubId" element={<ClubPage />} />
       <Route path="/results/:id" element={
-        <div className="bg-light min-h-screen flex flex-col">
+        <div className="bg-light min-h-screen flex flex-col overflow-x-hidden">
           <HeroBanner />
           <Navbar />
-          <Headline />
-          <TournamentSection />
+          <div className="flex-1 flex flex-col">
+            <Headline />
+            <TournamentSection />
+          </div>
           <Footer />
         </div>
       } />
