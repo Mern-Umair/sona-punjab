@@ -239,9 +239,10 @@ function TournamentBlock({ tournament }) {
       </div>
 
       {/* Info box — same design everywhere, font-size fluid on small screens */}
-      <div
-        className="mx-2 sm:mx-4 mb-2 sm:mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-2 py-1.5 sm:px-4 sm:py-3 text-dark"
-        style={{ fontSize: "clamp(9px, 2.4vw, 14px)" }}
+         {/* Info box — same design everywhere, font-size fluid on small screens */}
+         <div
+        className="mx-4 mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-4 py-3 text-dark"
+        style={{ fontSize: "clamp(11px, 2.8vw, 14px)" }}
       >
         <p>
           Lofts: <strong>{tournament.lofts || tournament.owners?.length || 0}</strong>,
@@ -249,6 +250,21 @@ function TournamentBlock({ tournament }) {
           {" "}Pigeons landed: <strong>{landed}</strong>,
           {" "}Pigeons remaining: <strong>{remaining}</strong>
         </p>
+        {!isTotal && !isDoubleTotal && (
+          <p className="mt-2">
+            Todays winner pigeon time:{" "}
+            {lastWinnerPigeon ? (
+              <>
+                <span className="bg-cyan-600 text-white font-bold px-2 py-0.5 rounded">
+                  {lastWinnerPigeon.time}
+                </span>
+                {", "}{lastWinnerPigeon.ownerName}
+              </>
+            ) : (
+              "No results yet"
+            )}
+          </p>
+        )}
       </div>
 
       <div className="mx-2 sm:mx-4 overflow-x-auto border border-gray">
