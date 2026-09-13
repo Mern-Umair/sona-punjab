@@ -13,15 +13,23 @@ function formatDate(dateStr) {
   return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
 }
 
-function timeToMinutes(t) {
+function timeToSeconds(t) {
   if (!t) return null;
-  const [h, m] = t.split(":").map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return null;
-  return h * 60 + m;
+  const parts = t.split(":").map(Number);
+  if (parts.some((n) => Number.isNaN(n))) return null;
+  const [h = 0, m = 0, s = 0] = parts;
+  return h * 3600 + m * 60 + s;
 }
 
 function StampIcon() {
-  return <span title="Double Stamp" className="ml-1 text-[10px]">🏷️</span>;
+  return (
+    <span
+      title="Double Stamp"
+      className="inline-block rounded px-1 py-px text-[7px] sm:text-[9px] font-semibold leading-none bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap"
+    >
+      Double Stamp
+    </span>
+  );
 }
 
 // Small inline icons — no new dependency needed
@@ -111,7 +119,25 @@ function TournamentBlock({ tournament }) {
     ? dates.map((d) => formatDate(d))
     : [];
 
-  // "Last Winner" = highest individual clock-time cell across all owners, for the current day
+  // First winner = highest time in column #1 only
+  const firstWinnerPigeon = (() => {
+    if (isTotal || isDoubleTotal) return null;
+    let best = null;
+    tournament.owners?.forEach((owner) => {
+      const matched = results.find(
+        (r) => String(r.owner?._id || r.owner) === String(owner._id)
+      );
+      const t = matched?.times?.[0];
+      const secs = timeToSeconds(t);
+      if (secs === null) return;
+      if (!best || secs > best.seconds) {
+        best = { ownerId: String(owner._id), colIndex: 0, time: t, seconds: secs, ownerName: owner.name };
+      }
+    });
+    return best;
+  })();
+
+  // Last winner = highest time across all pigeon columns for all owners
   const lastWinnerPigeon = (() => {
     if (isTotal || isDoubleTotal) return null;
     let best = null;
@@ -121,39 +147,29 @@ function TournamentBlock({ tournament }) {
       );
       if (!matched?.times) return;
       for (let ti = 0; ti < pigeons; ti++) {
-        const t = matched.times[ti + 1];
-        const mins = timeToMinutes(t);
-        if (mins === null) continue;
-        if (!best || mins > best.minutes) {
-          best = { ownerId: String(owner._id), colIndex: ti, time: t, minutes: mins, ownerName: owner.name };
+        const t = matched.times[ti];
+        const secs = timeToSeconds(t);
+        if (secs === null) continue;
+        if (!best || secs > best.seconds) {
+          best = { ownerId: String(owner._id), colIndex: ti, time: t, seconds: secs, ownerName: owner.name };
         }
       }
     });
     return best;
   })();
 
-  // "First Winner" = lowest/earliest individual clock-time cell across all owners, for the current day
-  const firstWinnerPigeon = (() => {
-    if (isTotal || isDoubleTotal) return null;
-    let best = null;
-    tournament.owners?.forEach((owner) => {
-      const matched = results.find(
-        (r) => String(r.owner?._id || r.owner) === String(owner._id)
-      );
-      if (!matched?.times) return;
-      for (let ti = 0; ti < pigeons; ti++) {
-        const t = matched.times[ti + 1];
-        const mins = timeToMinutes(t);
-        if (mins === null) continue;
-        if (!best || mins < best.minutes) {
-          best = { ownerId: String(owner._id), colIndex: ti, time: t, minutes: mins, ownerName: owner.name };
-        }
-      }
-    });
-    return best;
-  })();
-
-  const winningPigeon = lastWinnerPigeon; // kept for existing cell-highlight logic below
+  const isHighlightCell = (ownerId, colIndex) => {
+    const id = String(ownerId);
+    const isFirst =
+      firstWinnerPigeon &&
+      firstWinnerPigeon.ownerId === id &&
+      firstWinnerPigeon.colIndex === colIndex;
+    const isLast =
+      lastWinnerPigeon &&
+      lastWinnerPigeon.ownerId === id &&
+      lastWinnerPigeon.colIndex === colIndex;
+    return isFirst || isLast;
+  };
 
   // --- Blink-on-new-record logic ---
   const [blinkingRows, setBlinkingRows] = useState({});
@@ -251,19 +267,34 @@ function TournamentBlock({ tournament }) {
           {" "}Pigeons remaining: <strong>{remaining}</strong>
         </p>
         {!isTotal && !isDoubleTotal && (
-          <p className="mt-2">
-            Todays winner pigeon time:{" "}
-            {lastWinnerPigeon ? (
-              <>
-                <span className="bg-cyan-600 text-white font-bold px-2 py-0.5 rounded">
-                  {lastWinnerPigeon.time}
-                </span>
-                {", "}{lastWinnerPigeon.ownerName}
-              </>
-            ) : (
-              "No results yet"
-            )}
-          </p>
+          <div className="mt-2 space-y-1">
+            <p>
+              First winner pigeon time:{" "}
+              {firstWinnerPigeon ? (
+                <>
+                  <span className="bg-cyan-600 text-white font-semibold px-1.5 py-0.5 rounded text-[11px] sm:text-xs">
+                    {firstWinnerPigeon.time}
+                  </span>
+                  {", "}{firstWinnerPigeon.ownerName}
+                </>
+              ) : (
+                "No results yet"
+              )}
+            </p>
+            <p>
+              Last winner pigeon time:{" "}
+              {lastWinnerPigeon ? (
+                <>
+                  <span className="bg-cyan-600 text-white font-semibold px-1.5 py-0.5 rounded text-[11px] sm:text-xs">
+                    {lastWinnerPigeon.time}
+                  </span>
+                  {", "}{lastWinnerPigeon.ownerName}
+                </>
+              ) : (
+                "No results yet"
+              )}
+            </p>
+          </div>
         )}
       </div>
 
@@ -350,35 +381,37 @@ function TournamentBlock({ tournament }) {
                           );
                         }
                         return (
-                          <td key={ti} className="px-0.5 py-1.5 sm:py-3 text-center text-gray whitespace-nowrap text-[8px] sm:text-sm">
-                            {dayResult?.total || "—"}
+                          <td key={ti} className="px-0.5 py-1 sm:py-2 text-center text-gray whitespace-nowrap text-[7px] sm:text-xs">
+                            {isDoubleTotal
+                              ? (dayResult?.doubleStampTotal || "—")
+                              : (dayResult?.total || "—")}
                             {dayResult?.isDoubleStamp && <StampIcon />}
                           </td>
                         );
                       })
                       : Array.from({ length: pigeons }).map((_, ti) => {
-                        const isWinningCell =
-                          winningPigeon &&
-                          winningPigeon.ownerId === String(owner._id) &&
-                          winningPigeon.colIndex === ti;
+                        const isWinningCell = isHighlightCell(owner._id, ti);
                         return (
                           <td
                             key={ti}
-                            className={`px-0 py-1 sm:px-2 sm:py-1.5 text-center transition-colors whitespace-nowrap text-[7px] sm:text-sm ${isWinningCell
-                              ? "bg-cyan-600 text-white font-bold"
+                            className={`px-0 py-1 sm:px-1.5 sm:py-1.5 text-center transition-colors whitespace-nowrap text-[7px] sm:text-xs ${isWinningCell
+                              ? "bg-cyan-600 text-white font-semibold animate-winner-blink"
                               : "text-gray"
                               }`}
                           >
-
-                            {matched?.times?.[ti + 1] || "—"}
+                            <span className="inline-flex flex-col items-center justify-center gap-0.5">
+                              {matched?.times?.[ti] || "—"}
+                              {matched?.doubleStamps?.[ti] && matched?.times?.[ti] ? <StampIcon /> : null}
+                            </span>
                           </td>
                         );
                       })
                     }
 
-                    <td className="px-0.5 py-1 sm:px-3 sm:py-1.5 text-center font-bold text-navy whitespace-nowrap text-[7px] sm:text-sm">
-                      {matched?.total || "No Result"}
-                      {!isTotal && !isDoubleTotal && matched?.isDoubleStamp && <StampIcon />}
+                    <td className="px-0.5 py-1 sm:px-2 sm:py-1.5 text-center font-semibold text-navy whitespace-nowrap text-[7px] sm:text-xs">
+                      {isDoubleTotal
+                        ? (matched?.total || "No Result")
+                        : (matched?.total || "No Result")}
                     </td>
                   </tr>
                 );

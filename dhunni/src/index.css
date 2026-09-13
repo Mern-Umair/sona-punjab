@@ -48,6 +48,15 @@ html, body, #root {
   direction: rtl;
 }
 
+@keyframes winner-blink {
+  0%, 100% { opacity: 1; background-color: #0891b2; }
+  50% { opacity: 0.55; background-color: #22d3ee; }
+}
+
+.animate-winner-blink {
+  animation: winner-blink 2.5s ease-in-out infinite;
+}
+
 .swiper-pagination {
   position: absolute !important;
   bottom: 10px !important;
