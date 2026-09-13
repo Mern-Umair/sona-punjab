@@ -13,9 +13,38 @@ const calculateDuration = (startTime, arrivalTime) => {
   const startSec = timeToSeconds(startTime) || 0;
   const arrivalSec = timeToSeconds(arrivalTime);
   if (arrivalSec === null) return null;
+
   let diff = arrivalSec - startSec;
-  if (diff < 0) diff += 24 * 3600;
-  return diff;
+  if (diff >= 0) return diff;
+
+  // If arrival is earlier on the clock than fly time, treat it as PM first.
+  const pmArrivalSec = arrivalSec + 12 * 3600;
+  if (pmArrivalSec < 24 * 3600 && pmArrivalSec > startSec) {
+    return pmArrivalSec - startSec;
+  }
+
+  // Otherwise assume next-day arrival.
+  return diff + 24 * 3600;
+};
+
+const convertPmTo24Hour = (timeStr, flyTimeStr) => {
+  if (!timeStr) return timeStr;
+  const parts = String(timeStr).trim().split(":").map(Number);
+  if (parts.some((n) => Number.isNaN(n)) || parts.length < 2) return timeStr;
+
+  let [h, m, s = 0] = parts;
+  if (h < 0 || h > 23 || m > 59 || s > 59) return timeStr;
+  if (h === 0 || h >= 12) {
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  const flySec = timeToSeconds(flyTimeStr);
+  const arrSec = h * 3600 + m * 60 + s;
+  if (flySec !== null && arrSec < flySec) {
+    h += 12;
+  }
+
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
 const formatDuration = (totalSeconds) => {
@@ -47,6 +76,36 @@ const calculateOwnerTotal = (times, startTime, pigeons, helperPigeons) => {
   return formatDuration(totalSeconds);
 };
 
+const normalizeDoubleStamps = (doubleStamps, slotCount) => {
+  const stamps = Array.isArray(doubleStamps) ? [...doubleStamps] : [];
+  while (stamps.length < slotCount) stamps.push(false);
+  return stamps.slice(0, slotCount).map(Boolean);
+};
+
+const calculateDoubleStampOwnerTotal = (times, doubleStamps, startTime, pigeons, helperPigeons) => {
+  const stamps = normalizeDoubleStamps(doubleStamps, times.length);
+  const regularTimes = times.slice(0, pigeons);
+  const helperTimes = times.slice(pigeons, pigeons + helperPigeons);
+
+  let totalSeconds = 0;
+
+  regularTimes.forEach((t, i) => {
+    if (!helperTimes[i] && stamps[i] && t) {
+      const dur = calculateDuration(startTime, t);
+      if (dur !== null) totalSeconds += dur;
+    }
+  });
+
+  helperTimes.forEach((t, i) => {
+    if (stamps[pigeons + i] && t) {
+      const dur = calculateDuration(startTime, t);
+      if (dur !== null) totalSeconds += dur;
+    }
+  });
+
+  return formatDuration(totalSeconds);
+};
+
 // Har owner ke saare saved din ke totals ko jama karta hai, fastest-first sort karta hai
 // Har owner ke saare saved din ke totals ko jama karta hai, fastest-first sort karta hai
 const recomputeTotalResults = (tournament) => {
@@ -73,15 +132,22 @@ const recomputeTotalResults = (tournament) => {
   }));
 };
 
-// Sirf un dinon ka total jama karta hai jinhe admin ne "Double Stamp" mark kiya ho
+// Sirf double-stamp marked times ka total jama karta hai
 const recomputeDoubleStampResults = (tournament) => {
   const ownerTotals = {};
 
   tournament.tournamentDays.forEach((day) => {
     day.results.forEach((r) => {
-      if (!r.isDoubleStamp) return;
-      const [h = 0, m = 0, s = 0] = (r.total || "00:00:00").split(":").map(Number);
+      const partialTotal = r.doubleStampTotal || calculateDoubleStampOwnerTotal(
+        r.times || [],
+        r.doubleStamps || [],
+        r.startTime,
+        tournament.pigeons,
+        tournament.helperPigeons
+      );
+      const [h = 0, m = 0, s = 0] = partialTotal.split(":").map(Number);
       const seconds = h * 3600 + m * 60 + s;
+      if (seconds === 0) return;
       const key = String(r.owner);
       ownerTotals[key] = (ownerTotals[key] || 0) + seconds;
     });
@@ -380,7 +446,7 @@ export const saveOwnerDayResult = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id);
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
 
-  const { ownerId, times, startTime, isDoubleStamp } = req.body;
+  const { ownerId, times, startTime, doubleStamps } = req.body;
   if (!ownerId || !Array.isArray(times)) {
     return errorResponse(res, "ownerId and times[] required", 400);
   }
@@ -391,9 +457,19 @@ export const saveOwnerDayResult = async (req, res) => {
   if (dayIndex === -1) return errorResponse(res, "Date not found", 404);
 
   const finalStartTime = startTime || tournament.startTime;
+  const convertedTimes = times.map((t) => convertPmTo24Hour(t, finalStartTime));
+  const slotCount = (tournament.pigeons || 0) + (tournament.helperPigeons || 0);
+  const normalizedStamps = normalizeDoubleStamps(doubleStamps, slotCount);
 
   const total = calculateOwnerTotal(
-    times,
+    convertedTimes,
+    finalStartTime,
+    tournament.pigeons,
+    tournament.helperPigeons
+  );
+  const doubleStampTotal = calculateDoubleStampOwnerTotal(
+    convertedTimes,
+    normalizedStamps,
     finalStartTime,
     tournament.pigeons,
     tournament.helperPigeons
@@ -401,14 +477,25 @@ export const saveOwnerDayResult = async (req, res) => {
 
   const day = tournament.tournamentDays[dayIndex];
   const existingIdx = day.results.findIndex(r => String(r.owner) === String(ownerId));
+  const isDoubleStamp = normalizedStamps.some(Boolean);
 
   if (existingIdx > -1) {
-    day.results[existingIdx].times = times;
+    day.results[existingIdx].times = convertedTimes;
     day.results[existingIdx].startTime = finalStartTime;
     day.results[existingIdx].total = total;
-    day.results[existingIdx].isDoubleStamp = !!isDoubleStamp;
+    day.results[existingIdx].doubleStamps = normalizedStamps;
+    day.results[existingIdx].doubleStampTotal = doubleStampTotal;
+    day.results[existingIdx].isDoubleStamp = isDoubleStamp;
   } else {
-    day.results.push({ owner: ownerId, times, startTime: finalStartTime, total, isDoubleStamp: !!isDoubleStamp });
+    day.results.push({
+      owner: ownerId,
+      times: convertedTimes,
+      startTime: finalStartTime,
+      total,
+      doubleStamps: normalizedStamps,
+      doubleStampTotal,
+      isDoubleStamp,
+    });
   }
 
   const totalPigeonSlots = (tournament.pigeons + tournament.helperPigeons) * (tournament.owners?.length || 0);

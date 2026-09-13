@@ -5,7 +5,9 @@ const resultSchema = new mongoose.Schema({
   rank:          { type: Number },
   startTime:     { type: String, default: "" },
   times:         [{ type: String }],
+  doubleStamps:  [{ type: Boolean }],
   total:         { type: String },
+  doubleStampTotal: { type: String },
   isDoubleStamp: { type: Boolean, default: false },
 }, { _id: false });
 

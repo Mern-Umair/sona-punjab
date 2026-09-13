@@ -22,7 +22,6 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
     startDate: initial?.startDate ? new Date(initial.startDate).toISOString().split("T")[0] : "",
     startTime: initial?.startTime || "",
     days: initial?.days || "",
-    continueDays: initial?.continueDays || "",
     pigeons: initial?.pigeons || "",
     helperPigeons: initial?.helperPigeons || "",
     prizes: initial?.prizes || "",
@@ -87,7 +86,6 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
     formData.set("startDate", form.startDate);
     formData.set("startTime", form.startTime);
     formData.set("days", form.days);
-    formData.set("continueDays", form.continueDays);
     formData.set("pigeons", form.pigeons);
     formData.set("helperPigeons", form.helperPigeons);
     formData.set("prizes", form.prizes);
@@ -211,17 +209,6 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
                 ))}
               </div>
             )}
-
-            {/* Continue Days */}
-            <div>
-              <label className="text-slate-600 text-sm font-medium block mb-1">Continue Days</label>
-              <input
-                type="number"
-                value={form.continueDays}
-                onChange={e => setForm({ ...form, continueDays: e.target.value })}
-                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
-              />
-            </div>
 
             {/* Pigeons */}
             <div>

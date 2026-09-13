@@ -1,25 +1,11 @@
-import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useGetClubsQuery } from "../../redux/api/clubApi";
 
 export default function Navbar() {
-  const [now, setNow] = useState(new Date());
   const { pathname } = useLocation();
 
   const { data: clubsData } = useGetClubsQuery();
   const clubs = clubsData?.data || [];
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-
-  const formattedDate = now
-    .toLocaleDateString("en-GB", { timeZone: "Asia/Karachi" })
-    .split("/")
-    .join(".");
-  const formattedTime = now.toLocaleTimeString("en-GB", { timeZone: "Asia/Karachi" });
 
   const allLinks = [{ label: "Home", to: "/" }, ...clubs.map((c) => ({ label: c.name, to: `/club/${c._id}` }))];
 
@@ -29,7 +15,7 @@ export default function Navbar() {
 
         {/* Desktop row */}
         <div className="hidden lg:flex items-center justify-between h-14">
-          <div className="flex items-stretch gap-1 overflow-x-auto py-1.5">
+          <div className="flex items-center gap-1 overflow-x-auto py-1.5">
             {allLinks.map((link) => (
               <Link
                 key={link.to}
@@ -42,20 +28,14 @@ export default function Navbar() {
             ))}
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-blue-100 font-sans whitespace-nowrap">
-            <div className="flex flex-col items-end leading-tight">
-              <span>{formattedDate}</span>
-              <span>{formattedTime}</span>
-            </div>
-            <a
-              href="https://sona-punjab-admin.onrender.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold px-3 py-1.5 rounded border border-white/40 text-white hover:bg-white hover:text-navy transition-colors"
-            >
-              Admin Login
-            </a>
-          </div>
+          <a
+            href="https://sona-punjab-admin.onrender.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold px-3 py-1.5 rounded border border-white/40 text-white hover:bg-white hover:text-navy transition-colors"
+          >
+            sona punjab
+          </a>
         </div>
       </div>
 
@@ -81,14 +61,7 @@ export default function Navbar() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-navy/10">
-          <div
-            className="flex flex-col leading-tight text-navy text-right shrink-0"
-            style={{ fontSize: "clamp(8px, 2.2vw, 12px)" }}
-          >
-            <span>{formattedDate}</span>
-            <span>{formattedTime}</span>
-          </div>
+        <div className="flex items-center shrink-0 pl-2 border-l border-navy/10">
           <a
             href="https://sona-punjab-admin.onrender.com"
             target="_blank"
@@ -99,7 +72,7 @@ export default function Navbar() {
             }}
             className="font-semibold rounded border border-navy text-navy hover:bg-navy hover:text-white transition-colors whitespace-nowrap shrink-0"
           >
-            Admin Login
+            sona punjab
           </a>
         </div>
       </div>
