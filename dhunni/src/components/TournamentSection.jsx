@@ -276,7 +276,7 @@ function TournamentBlock({ tournament }) {
               </th>
               {(isTotal || isDoubleTotal)
                 ? totalDateCols.map((col, i) => (
-                  <th key={i} className="px-0.5 py-1.5 sm:px-3 sm:py-3 text-center text-white font-semibold whitespace-nowrap">{col}</th>
+                  <th key={i} className="px-0.5 py-1.5 sm:px-3 sm:py-3 text-center text-white font-semibold leading-tight break-words whitespace-normal sm:whitespace-nowrap text-[7px] sm:text-sm">{col}</th>
                 ))
                 : Array.from({ length: pigeons }).map((_, n) => (
                   <th key={n} className="px-0 py-1.5 sm:px-2 sm:py-3 text-center text-white font-semibold w-[32px] sm:w-auto">#{n + 1}</th>
