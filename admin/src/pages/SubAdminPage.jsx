@@ -144,6 +144,7 @@ export default function SubAdminPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this sub admin? This cannot be undone.")) return;
     try {
       await deleteSubAdmin(id).unwrap();
       toast.success("SubAdmin deleted!");

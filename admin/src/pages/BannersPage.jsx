@@ -79,6 +79,7 @@ export default function BannersPage() {
   const banners = data?.data || [];
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this banner? This cannot be undone.")) return;
     try {
       await deleteBanner(id).unwrap();
       toast.success("Banner deleted!");

@@ -429,6 +429,7 @@ export default function TournamentsPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this tournament? This cannot be undone.")) return;
     try {
       await deleteTournament(id).unwrap();
       toast.success("Tournament deleted!");

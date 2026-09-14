@@ -119,6 +119,7 @@ export default function PigeonOwnersPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this owner? This cannot be undone.")) return;
     try {
       await deleteOwner(id).unwrap();
       toast.success("Owner deleted!");

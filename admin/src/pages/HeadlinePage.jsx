@@ -74,6 +74,7 @@ export default function HeadlinePage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this headline? This cannot be undone.")) return;
     try {
       await deleteHeadline(id).unwrap();
       toast.success("Headline deleted!");

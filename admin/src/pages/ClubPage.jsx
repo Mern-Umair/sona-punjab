@@ -77,6 +77,7 @@ export default function ClubPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this club? This cannot be undone.")) return;
     try {
       await deleteClub(id).unwrap();
       toast.success("Club deleted!");
