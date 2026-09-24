@@ -48,6 +48,34 @@ html, body, #root {
   direction: rtl;
 }
 
+/* Menu bar gradient (sikeryalipigeon.com style) */
+.nav-gradient {
+  background: linear-gradient(to right, #003F72, #0b5a99);
+}
+
+/* Result tables: striped odd rows + full grid borders (sikeryalipigeon.com style) */
+.results-table {
+  border-collapse: collapse;
+  border: 1px solid #b8c2d1;
+}
+.results-table th,
+.results-table td {
+  border: 1px solid #b8c2d1;
+}
+.results-table thead th {
+  border-color: #2c447a;
+}
+.results-table tbody tr:nth-child(odd):not(.is-blinking) {
+  background-color: #ecf0f5;
+}
+.results-table tbody tr:nth-child(even):not(.is-blinking) {
+  background-color: #ffffff;
+}
+.results-table tbody tr:hover:not(.is-blinking) {
+  background-color: #d1ecf4;
+}
+
+/* First winner pigeon cell */
 @keyframes winner-blink {
   0%, 100% { opacity: 1; background-color: #0891b2; }
   50% { opacity: 0.55; background-color: #22d3ee; }
@@ -55,6 +83,16 @@ html, body, #root {
 
 .animate-winner-blink {
   animation: winner-blink 2.5s ease-in-out infinite;
+}
+
+/* Last winner pigeon cell (distinct colour from first winner) */
+@keyframes winner-blink-last {
+  0%, 100% { opacity: 1; background-color: #15803d; }
+  50% { opacity: 0.6; background-color: #4ade80; }
+}
+
+.animate-winner-blink-last {
+  animation: winner-blink-last 2.5s ease-in-out infinite;
 }
 
 .swiper-pagination {

@@ -158,7 +158,8 @@ function TournamentBlock({ tournament }) {
     return best;
   })();
 
-  const isHighlightCell = (ownerId, colIndex) => {
+  /** Returns "first", "last" or null for a pigeon cell. */
+  const winnerKindForCell = (ownerId, colIndex) => {
     const id = String(ownerId);
     const isFirst =
       firstWinnerPigeon &&
@@ -168,7 +169,9 @@ function TournamentBlock({ tournament }) {
       lastWinnerPigeon &&
       lastWinnerPigeon.ownerId === id &&
       lastWinnerPigeon.colIndex === colIndex;
-    return isFirst || isLast;
+    if (isFirst) return "first";
+    if (isLast) return "last";
+    return null;
   };
 
   // --- Blink-on-new-record logic ---
@@ -285,7 +288,7 @@ function TournamentBlock({ tournament }) {
               Last winner pigeon time:{" "}
               {lastWinnerPigeon ? (
                 <>
-                  <span className="bg-cyan-600 text-white font-semibold px-1.5 py-0.5 rounded text-[11px] sm:text-xs">
+                  <span className="bg-green-700 text-white font-semibold px-1.5 py-0.5 rounded text-[11px] sm:text-xs">
                     {lastWinnerPigeon.time}
                   </span>
                   {", "}{lastWinnerPigeon.ownerName}
@@ -299,7 +302,7 @@ function TournamentBlock({ tournament }) {
       </div>
 
       <div className="mx-2 sm:mx-4 overflow-x-auto border border-gray">
-        <table className="w-full text-[9px] sm:text-sm font-sans table-fixed sm:table-auto">
+        <table className="results-table w-full text-[9px] sm:text-sm font-sans table-fixed sm:table-auto">
           <thead>
             <tr className="bg-navy">
               <th className="pl-1 pr-1 py-1.5 sm:pl-24 sm:pr-3 sm:py-3 text-left text-white font-semibold w-[110px] sm:w-auto">
@@ -335,13 +338,10 @@ function TournamentBlock({ tournament }) {
                   (r) => String(r.owner?._id || r.owner) === String(owner._id)
                 );
                 const isBlinking = !!blinkingRows[owner._id];
-                const rowBg = isBlinking
-                  ? "bg-yellow-200"
-                  : "bg-white";
                 return (
                   <tr
                     key={owner._id}
-                    className={`border-t border-gray transition-colors hover:bg-blue-50 ${isBlinking ? "animate-pulse" : ""} ${isBlinking ? rowBg : ""}`}
+                    className={`transition-colors ${isBlinking ? "is-blinking animate-pulse bg-yellow-200" : ""}`}
                   >
                     <td className="px-1 py-1 sm:px-3 sm:py-1.5">
                       <div className="flex items-center gap-1 sm:gap-3">
@@ -382,22 +382,27 @@ function TournamentBlock({ tournament }) {
                         }
                         return (
                           <td key={ti} className="px-0.5 py-1 sm:py-2 text-center text-gray whitespace-nowrap text-[7px] sm:text-xs">
-                            {isDoubleTotal
-                              ? (dayResult?.doubleStampTotal || "—")
-                              : (dayResult?.total || "—")}
-                            {dayResult?.isDoubleStamp && <StampIcon />}
+                            <span className="inline-flex flex-col items-center justify-center gap-0.5">
+                              {isDoubleTotal
+                                ? (dayResult?.doubleStampTotal || "—")
+                                : (dayResult?.total || "—")}
+                              {dayResult?.isDoubleStamp && <StampIcon />}
+                            </span>
                           </td>
                         );
                       })
                       : Array.from({ length: pigeons }).map((_, ti) => {
-                        const isWinningCell = isHighlightCell(owner._id, ti);
+                        const winnerKind = winnerKindForCell(owner._id, ti);
+                        const cellTone =
+                          winnerKind === "first"
+                            ? "bg-cyan-600 text-white font-semibold animate-winner-blink"
+                            : winnerKind === "last"
+                              ? "bg-green-700 text-white font-semibold animate-winner-blink-last"
+                              : "text-gray";
                         return (
                           <td
                             key={ti}
-                            className={`px-0 py-1 sm:px-1.5 sm:py-1.5 text-center transition-colors whitespace-nowrap text-[7px] sm:text-xs ${isWinningCell
-                              ? "bg-cyan-600 text-white font-semibold animate-winner-blink"
-                              : "text-gray"
-                              }`}
+                            className={`px-0 py-1 sm:px-1.5 sm:py-1.5 text-center transition-colors whitespace-nowrap text-[7px] sm:text-xs ${cellTone}`}
                           >
                             <span className="inline-flex flex-col items-center justify-center gap-0.5">
                               {matched?.times?.[ti] || "—"}

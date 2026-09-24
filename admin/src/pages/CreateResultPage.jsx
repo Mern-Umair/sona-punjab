@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -12,23 +12,26 @@ function formatDate(dateStr) {
     return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
 }
 
-function formatTimeInput(val) {
-    const digits = String(val || "").replace(/\D/g, "").slice(0, 6);
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 4) return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-    return `${digits.slice(0, 2)}:${digits.slice(2, 4)}:${digits.slice(4)}`;
+function padPart(part) {
+    const digits = String(part || "").replace(/\D/g, "").slice(0, 2);
+    return digits === "" ? "" : digits.padStart(2, "0");
 }
 
+/** Accepts "H:M:S", "HH:MM:SS" or raw digits "HHMMSS" and returns "HH:MM:SS" ("" when empty). */
 function normalizeTime(val) {
     if (!val) return "";
-    const formatted = formatTimeInput(val);
-    const match = formatted.match(/^(\d{2}):(\d{2}):(\d{2})$/);
-    if (!match) return formatted;
-    const h = Number(match[1]);
-    const m = Number(match[2]);
-    const s = Number(match[3]);
-    if (h > 23 || m > 59 || s > 59) return formatted;
-    return formatted;
+    const str = String(val).trim();
+    let parts;
+    if (str.includes(":")) {
+        parts = str.split(":").slice(0, 3);
+    } else {
+        const d = str.replace(/\D/g, "").slice(0, 6);
+        parts = [d.slice(0, 2), d.slice(2, 4), d.slice(4, 6)];
+    }
+    while (parts.length < 3) parts.push("");
+    const padded = parts.map(padPart);
+    if (padded.every((x) => x === "")) return "";
+    return padded.join(":");
 }
 
 function isValidTime(val) {
@@ -67,7 +70,16 @@ function convertPmTo24Hour(timeStr, flyTimeStr) {
     return t;
 }
 
+const PART_LABELS = ["HH", "MM", "SS"];
+const PART_MAX = [23, 59, 59];
+
+/**
+ * Time entry dialog. Three separate boxes (hours / minutes / seconds) so the
+ * operator never has to type or fight with colons. Cursor auto-advances.
+ */
 function TimeInput({
+    title,
+    subtitle,
     value,
     onChange,
     onSave,
@@ -77,59 +89,181 @@ function TimeInput({
     showDoubleStamp = false,
     doubleStamp = false,
     onDoubleStampChange,
+    flyTime = "",
 }) {
-    const canSave = !value || isValidTime(value);
+    const [h = "", m = "", sec = ""] = String(value || "").split(":");
+    const parts = [h, m, sec];
+    const ref0 = useRef(null);
+    const ref1 = useRef(null);
+    const ref2 = useRef(null);
+    const refs = [ref0, ref1, ref2];
+
+    useEffect(() => {
+        ref0.current?.focus();
+        ref0.current?.select();
+    }, []);
+
+    const focusPart = (i) => {
+        const el = refs[i]?.current;
+        if (!el) return;
+        el.focus();
+        el.select();
+    };
+
+    const emit = (next) => {
+        onChange(next.every((x) => x === "") ? "" : next.join(":"));
+    };
+
+    const setPart = (i, rawVal) => {
+        const digitsAll = String(rawVal).replace(/\D/g, "");
+        // Pasted / typed a full time into one box -> spread across boxes
+        if (digitsAll.length > 2) {
+            const spread = [digitsAll.slice(0, 2), digitsAll.slice(2, 4), digitsAll.slice(4, 6)];
+            emit(spread);
+            focusPart(spread[2] ? 2 : spread[1] ? 1 : 0);
+            return;
+        }
+        let digits = digitsAll;
+        const next = [...parts];
+        // First digit already too big for this slot (e.g. "7" hours, "8" minutes) -> pad and move on
+        if (digits.length === 1 && Number(digits) > (i === 0 ? 2 : 5)) {
+            digits = "0" + digits;
+        }
+        next[i] = digits;
+        emit(next);
+        if (digits.length === 2 && i < 2) focusPart(i + 1);
+    };
+
+    const blurPart = (i) => {
+        const next = [...parts];
+        next[i] = padPart(next[i]);
+        if (next[i] !== parts[i]) emit(next);
+    };
+
+    const normalized = normalizeTime(value);
+    const isEmpty = !normalized;
+    const valid = isEmpty || isValidTime(normalized);
+    const canSave = valid;
+    const partInvalid = (i) => parts[i] !== "" && Number(parts[i]) > PART_MAX[i];
+    const finalTime = !isEmpty && valid && flyTime ? convertPmTo24Hour(normalized, flyTime) : normalized;
+    const pmApplied = !!finalTime && finalTime !== normalized;
+
+    const handleKey = (i, e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (canSave) onSave();
+            return;
+        }
+        if (e.key === "Escape") {
+            onCancel();
+            return;
+        }
+        if (e.key === ":" || e.key === "." || e.key === " ") {
+            e.preventDefault();
+            if (i < 2) focusPart(i + 1);
+            return;
+        }
+        if (e.key === "Backspace" && parts[i] === "" && i > 0) {
+            e.preventDefault();
+            focusPart(i - 1);
+            return;
+        }
+        const el = e.target;
+        if (e.key === "ArrowRight" && i < 2 && el.selectionStart === parts[i].length) {
+            e.preventDefault();
+            focusPart(i + 1);
+        }
+        if (e.key === "ArrowLeft" && i > 0 && el.selectionStart === 0) {
+            e.preventDefault();
+            focusPart(i - 1);
+        }
+    };
 
     return (
         <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
             onClick={(e) => e.stopPropagation()}
-            className="absolute z-20 top-full left-0 bg-white border-2 border-[#0ea5e9] rounded-lg p-3 shadow-lg w-48 max-w-[90vw]"
+            onMouseDown={(e) => {
+                if (e.target === e.currentTarget) onCancel();
+            }}
         >
-            <input
-                type="text"
-                inputMode="numeric"
-                autoFocus
-                placeholder="HH:MM:SS"
-                maxLength={8}
-                value={value || ""}
-                onChange={(e) => onChange(formatTimeInput(e.target.value))}
-                onBlur={(e) => onChange(normalizeTime(e.target.value))}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (canSave) onSave();
-                    }
-                    if (e.key === "Escape") onCancel();
-                }}
-                className={`w-full border rounded px-2 py-1 text-sm mb-1 outline-none
-                  ${value && !isValidTime(value) ? "border-red-400" : "border-slate-200"}`}
-            />
-            <p className="text-[10px] text-slate-400 mb-2">Format: HH:MM:SS</p>
-            {showDoubleStamp && (
-                <label className="flex items-center gap-2 mb-2 text-xs text-slate-700 cursor-pointer select-none">
-                    <input
-                        type="checkbox"
-                        checked={!!doubleStamp}
-                        onChange={(e) => onDoubleStampChange?.(e.target.checked)}
-                        className="w-3.5 h-3.5 accent-[#0ea5e9]"
-                    />
-                    Double Stamp
-                </label>
-            )}
-            <div className="flex gap-1">
-                <button onClick={onClear} className="flex-1 text-xs bg-slate-100 rounded py-1">
-                    Clear
-                </button>
-                <button onClick={onCancel} className="flex-1 text-xs bg-red-50 text-red-600 rounded py-1">
-                    Cancel
-                </button>
-                <button
-                    onClick={onSave}
-                    disabled={saving || !canSave}
-                    className="flex-1 text-xs bg-green-50 text-green-700 rounded py-1 disabled:opacity-50"
-                >
-                    Save
-                </button>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs p-4 text-left">
+                <p className="text-[#122654] font-bold text-sm leading-tight">{title}</p>
+                {subtitle && <p className="text-slate-400 text-xs mt-0.5">{subtitle}</p>}
+
+                <div className="flex items-start justify-center gap-1 mt-4">
+                    {parts.map((part, i) => (
+                        <div key={i} className="flex items-start gap-1">
+                            <div className="flex flex-col items-center">
+                                <input
+                                    ref={refs[i]}
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    placeholder="00"
+                                    value={part}
+                                    onChange={(e) => setPart(i, e.target.value)}
+                                    onBlur={() => blurPart(i)}
+                                    onFocus={(e) => e.target.select()}
+                                    onKeyDown={(e) => handleKey(i, e)}
+                                    className={`w-16 h-14 text-center text-2xl font-bold tabular-nums rounded-lg border-2 outline-none transition-colors
+                                      ${partInvalid(i)
+                                            ? "border-red-400 bg-red-50 text-red-700"
+                                            : "border-slate-200 focus:border-[#0ea5e9] text-[#122654]"}`}
+                                />
+                                <span className="text-[10px] text-slate-400 mt-1 font-medium">{PART_LABELS[i]}</span>
+                            </div>
+                            {i < 2 && <span className="text-2xl font-bold text-slate-300 leading-[3.5rem]">:</span>}
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                    {isEmpty ? (
+                        <span>Time khali hai — Save karne se time clear ho jayega.</span>
+                    ) : !valid ? (
+                        <span className="text-red-600">Ghalat time: HH 00–23, MM/SS 00–59.</span>
+                    ) : (
+                        <span>
+                            Save hoga:{" "}
+                            <strong className="text-[#122654] tabular-nums">{finalTime}</strong>
+                            {pmApplied && (
+                                <span className="text-amber-700"> (fly time se pehle → PM samjha gaya)</span>
+                            )}
+                        </span>
+                    )}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                    Sirf number likhein — cursor khud agle box mein chala jayega. Enter = Save, Esc = Cancel.
+                </p>
+
+                {showDoubleStamp && (
+                    <label className="flex items-center gap-2 mt-3 text-xs text-slate-700 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={!!doubleStamp}
+                            onChange={(e) => onDoubleStampChange?.(e.target.checked)}
+                            className="w-3.5 h-3.5 accent-[#0ea5e9]"
+                        />
+                        Double Stamp
+                    </label>
+                )}
+
+                <div className="flex gap-2 mt-4">
+                    <button onClick={onClear} className="flex-1 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg py-2 font-medium">
+                        Clear
+                    </button>
+                    <button onClick={onCancel} className="flex-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-lg py-2 font-medium">
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onSave}
+                        disabled={saving || !canSave}
+                        className="flex-1 text-xs bg-[#0ea5e9] text-white hover:bg-[#0284c7] rounded-lg py-2 font-semibold disabled:opacity-50"
+                    >
+                        {saving ? "Saving…" : "Save"}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -318,7 +452,7 @@ export default function CreateResultPage() {
                     })}
                 </div>
                 <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-                    <table className="w-full text-xs sm:text-sm min-w-[640px]">
+                    <table className="results-table w-full text-xs sm:text-sm min-w-[640px]">
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50">
                                 <th className="px-3 py-3 text-left text-slate-500 font-medium w-10">Sr#</th>
@@ -349,7 +483,7 @@ export default function CreateResultPage() {
                                     const existing = results.find((r) => r.owner?._id === owner._id);
                                     const draft = getOwnerDraft(owner._id);
                                     return (
-                                        <tr key={owner._id} className="border-t border-slate-100">
+                                        <tr key={owner._id}>
                                             <td className="px-3 py-3 text-slate-400">{i + 1}</td>
                                             <td className="px-3 py-3">
                                                 <div className="flex items-center gap-2">
@@ -371,6 +505,8 @@ export default function CreateResultPage() {
                                                 {draft.startTime || "—"}
                                                 {editingCell?.ownerId === owner._id && editingCell?.field === "startTime" && (
                                                     <TimeInput
+                                                        title={`Fly Time — ${owner.name}`}
+                                                        subtitle={activeDate ? formatDate(activeDate) : ""}
                                                         value={draft.startTime}
                                                         onChange={(val) => updateDraft(owner._id, "startTime", val)}
                                                         onClear={() => clearFlyTime(owner._id)}
@@ -399,6 +535,9 @@ export default function CreateResultPage() {
                                                         editingCell?.field === "times" &&
                                                         editingCell?.index === idx && (
                                                             <TimeInput
+                                                                title={`Pigeon #${idx + 1} — ${owner.name}`}
+                                                                subtitle={`Fly Time: ${draft.startTime || "—"}`}
+                                                                flyTime={draft.startTime}
                                                                 value={draft.times[idx]}
                                                                 onChange={(val) => updateDraft(owner._id, "times", val, idx)}
                                                                 onClear={() => clearPigeonTime(owner._id, idx)}

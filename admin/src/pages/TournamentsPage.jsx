@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { MdCalendarToday } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
@@ -13,6 +14,109 @@ import {
 import { useGetClubsQuery } from "../../redux/api/clubApi";
 import { useGetOwnersQuery } from "../../redux/api/ownerApi";
 import toast, { Toaster } from "react-hot-toast";
+
+function formatDate(dateStr) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+}
+
+function isoToDmy(iso) {
+  if (!iso) return "";
+  const [y, m, d] = String(iso).split("-");
+  if (!y || !m || !d) return "";
+  return `${d}-${m}-${y}`;
+}
+
+function dmyToIso(dmy) {
+  const m = String(dmy || "").match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (!m) return null;
+  const [, d, mo, y] = m;
+  const dt = new Date(Number(y), Number(mo) - 1, Number(d));
+  if (dt.getFullYear() !== Number(y) || dt.getMonth() + 1 !== Number(mo) || dt.getDate() !== Number(d)) return null;
+  return `${y}-${mo}-${d}`;
+}
+
+function formatDmyInput(val) {
+  const digits = String(val || "").replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
+}
+
+/** Day-Month-Year text input (DD-MM-YYYY). Stores ISO (YYYY-MM-DD) in `value`. */
+function DateInput({ value, onChange, className = "" }) {
+  const [text, setText] = useState(isoToDmy(value));
+  const [syncedValue, setSyncedValue] = useState(value);
+  const pickerRef = useRef(null);
+
+  // Keep the visible text in sync when the ISO value changes from outside (e.g. calendar picker).
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setText(isoToDmy(value));
+  }
+
+  const invalid = text.length === 10 && !dmyToIso(text);
+
+  const handleChange = (raw) => {
+    const formatted = formatDmyInput(raw);
+    setText(formatted);
+    if (formatted === "") {
+      onChange("");
+      return;
+    }
+    const iso = dmyToIso(formatted);
+    if (iso) onChange(iso);
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="DD-MM-YYYY"
+        maxLength={10}
+        value={text}
+        onChange={e => handleChange(e.target.value)}
+        className={`${className} pr-10 ${invalid ? "border-red-400" : ""}`}
+      />
+      <button
+        type="button"
+        title="Open calendar"
+        onClick={() => {
+          const el = pickerRef.current;
+          if (!el) return;
+          if (typeof el.showPicker === "function") el.showPicker();
+          else el.click();
+        }}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#122654]"
+      >
+        <MdCalendarToday size={16} />
+      </button>
+      <input
+        ref={pickerRef}
+        type="date"
+        tabIndex={-1}
+        value={value || ""}
+        onChange={e => onChange(e.target.value)}
+        className="absolute right-2 top-1/2 w-0 h-0 opacity-0 pointer-events-none"
+      />
+    </div>
+  );
+}
+
+/** Clamp a count field to 0..max. Never allows negatives. */
+function clampCount(val, max = 50) {
+  if (val === "" || val === null || val === undefined) return "";
+  const n = Math.floor(Number(val));
+  if (Number.isNaN(n)) return "";
+  return String(Math.min(max, Math.max(0, n)));
+}
+
+const blockMinusKeys = (e) => {
+  if (["-", "+", "e", "E", "."].includes(e.key)) e.preventDefault();
+};
 
 function CreateTournamentModal({ onClose, onSave, initial }) {
   const user = useSelector((state) => state.auth.user);
@@ -42,7 +146,8 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
   const clubs = clubsData?.data || [];
   const owners = ownersData?.data || [];
 
-  const handleDaysChange = (val) => {
+  const handleDaysChange = (raw) => {
+    const val = clampCount(raw);
     const num = parseInt(val) || 0;
     setForm({ ...form, days: val });
     setDates(prev => {
@@ -52,7 +157,8 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
     });
   };
 
-  const handlePrizesChange = (val) => {
+  const handlePrizesChange = (raw) => {
+    const val = clampCount(raw);
     const num = parseInt(val) || 0;
     setForm({ ...form, prizes: val });
     setPrizeDetails(prev => {
@@ -156,10 +262,9 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
             {/* Start Date */}
             <div>
               <label className="text-slate-600 text-sm font-medium block mb-1">Start Date</label>
-              <input
-                type="date"
+              <DateInput
                 value={form.startDate}
-                onChange={e => setForm({ ...form, startDate: e.target.value })}
+                onChange={val => setForm({ ...form, startDate: val })}
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
               />
             </div>
@@ -183,6 +288,9 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
               </div>
               <input
                 type="number"
+                min={0}
+                max={50}
+                onKeyDown={blockMinusKeys}
                 value={form.days}
                 onChange={e => handleDaysChange(e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
@@ -195,12 +303,11 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
                 {dates.map((d, i) => (
                   <div key={i}>
                     <label className="text-slate-600 text-sm font-medium block mb-1">Date {i + 1}</label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={d}
-                      onChange={e => {
+                      onChange={val => {
                         const arr = [...dates];
-                        arr[i] = e.target.value;
+                        arr[i] = val;
                         setDates(arr);
                       }}
                       className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
@@ -218,8 +325,11 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
               </div>
               <input
                 type="number"
+                min={0}
+                max={50}
+                onKeyDown={blockMinusKeys}
                 value={form.pigeons}
-                onChange={e => setForm({ ...form, pigeons: e.target.value })}
+                onChange={e => setForm({ ...form, pigeons: clampCount(e.target.value) })}
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
               />
             </div>
@@ -232,8 +342,11 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
               </div>
               <input
                 type="number"
+                min={0}
+                max={50}
+                onKeyDown={blockMinusKeys}
                 value={form.helperPigeons}
-                onChange={e => setForm({ ...form, helperPigeons: e.target.value })}
+                onChange={e => setForm({ ...form, helperPigeons: clampCount(e.target.value) })}
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
               />
             </div>
@@ -246,6 +359,9 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
               </div>
               <input
                 type="number"
+                min={0}
+                max={50}
+                onKeyDown={blockMinusKeys}
                 value={form.prizes}
                 onChange={e => handlePrizesChange(e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
@@ -476,7 +592,7 @@ export default function TournamentsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-            <table className="w-full text-xs sm:text-sm min-w-[700px]">
+            <table className="results-table w-full text-xs sm:text-sm min-w-[700px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="px-4 py-3 text-left text-slate-500 font-medium w-10">#</th>
@@ -498,7 +614,7 @@ export default function TournamentsPage() {
                   </tr>
                 ) : (
                   tournaments.map((t, i) => (
-                    <tr key={t._id} className="border-t border-slate-100 hover:bg-slate-50">
+                    <tr key={t._id}>
                       <td className="px-4 py-4 text-slate-400">{i + 1}</td>
                       <td className="px-4 py-4">
                         <div className="w-14 h-16 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
@@ -526,7 +642,7 @@ export default function TournamentsPage() {
                         </button>
                       </td>
                       <td className="px-4 py-4 text-center text-slate-500">
-                        {t.startDate ? new Date(t.startDate).toLocaleDateString() : "—"}
+                        {formatDate(t.startDate)}
                       </td>
                       <td className="px-4 py-4 text-center text-slate-600">{t.pigeons}</td>
                       <td className="px-4 py-4 text-center text-slate-600">{t.lofts}</td>

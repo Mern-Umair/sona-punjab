@@ -2,6 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useGetTournamentsQuery } from "../../redux/api/tournamentApi";
 
+function formatDate(d) {
+    if (!d) return "";
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return "";
+    return `${String(dt.getDate()).padStart(2, "0")}-${String(dt.getMonth() + 1).padStart(2, "0")}-${dt.getFullYear()}`;
+}
+
 function TournamentCard({ tournament }) {
     const prizeDetails = tournament.prizeDetails || [];
     const totalResults = tournament.totalResults || [];
@@ -38,14 +45,12 @@ function TournamentCard({ tournament }) {
                             if (!tournament.startDate) return "—";
                             const start = new Date(tournament.startDate);
                             const end = new Date(start.getTime() + Math.max(0, (tournament.days || 1) - 1) * 86400000);
-                            const dayMonth = (d) => `${String(d.getDate()).padStart(2, "0")}. ${d.toLocaleDateString("en-GB", { month: "short" })}`;
-                            const year = start.getFullYear();
-                            return `${dayMonth(start)} - ${dayMonth(end)} ${year}`;
+                            return `${formatDate(start)} - ${formatDate(end)}`;
                         })()}
                     </p>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full table-fixed text-xs sm:text-base font-sans">
+                        <table className="results-table w-full table-fixed text-xs sm:text-base font-sans">
                             <colgroup>
                                 <col style={{ width: "6%" }} />
                                 <col style={{ width: "32%" }} />
@@ -53,21 +58,30 @@ function TournamentCard({ tournament }) {
                                 <col style={{ width: "17%" }} />
                                 <col style={{ width: "17%" }} />
                             </colgroup>
+                            <thead>
+                                <tr className="bg-navy">
+                                    <th className="px-1 py-1.5 text-left text-white font-semibold text-[10px] sm:text-sm">#</th>
+                                    <th className="px-1 py-1.5 text-left text-white font-semibold text-[10px] sm:text-sm">Name</th>
+                                    <th className="px-1 py-1.5 text-left text-white font-semibold text-[10px] sm:text-sm hidden sm:table-cell">City</th>
+                                    <th className="px-1 py-1.5 text-left text-white font-semibold text-[10px] sm:text-sm">Total</th>
+                                    <th className="px-1 py-1.5 text-left text-white font-semibold text-[10px] sm:text-sm">Prize</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 {!hasResults ? (
                                     <tr>
-                                        <td colSpan={5} className="py-3 text-gray text-xs">
+                                        <td colSpan={5} className="px-2 py-3 text-gray text-xs">
                                             No winner or final results yet. Check back after the tournament.
                                         </td>
                                     </tr>
                                 ) : (
                                     totalResults.map((row, i) => (
-                                        <tr key={i} className={i % 2 === 0 ? "bg-light" : "bg-white"}>
-                                            <td className="py-2 text-dark">{i + 1}</td>
-                                            <td className="py-2 text-navy">{row.owner?.name || "—"}</td>
-                                            <td className="py-2 text-gray hidden sm:table-cell">{row.owner?.city || ""}</td>
-                                            <td className="py-2 text-dark whitespace-nowrap">{row.total || "—"}</td>
-                                            <td className="py-2 text-dark whitespace-nowrap">{prizeDetails[i] || "—"}</td>
+                                        <tr key={i}>
+                                            <td className="px-1 py-2 text-dark">{i + 1}</td>
+                                            <td className="px-1 py-2 text-navy font-semibold">{row.owner?.name || "—"}</td>
+                                            <td className="px-1 py-2 text-gray hidden sm:table-cell">{row.owner?.city || ""}</td>
+                                            <td className="px-1 py-2 text-dark whitespace-nowrap">{row.total || "—"}</td>
+                                            <td className="px-1 py-2 text-dark whitespace-nowrap">{prizeDetails[i] || "—"}</td>
                                         </tr>
                                     ))
                                 )}

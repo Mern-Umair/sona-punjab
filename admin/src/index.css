@@ -15,3 +15,22 @@ html, body, #root {
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
 }
+
+/* Data tables: striped odd rows + full grid borders */
+.results-table {
+  border-collapse: collapse;
+  border: 1px solid #cbd5e1;
+}
+.results-table th,
+.results-table td {
+  border: 1px solid #cbd5e1;
+}
+.results-table tbody tr:nth-child(odd) {
+  background-color: #ecf0f5;
+}
+.results-table tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+.results-table tbody tr:hover {
+  background-color: #d1ecf4;
+}
