@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -31,7 +31,8 @@ function normalizeTime(val) {
     while (parts.length < 3) parts.push("");
     const padded = parts.map(padPart);
     if (padded.every((x) => x === "")) return "";
-    return padded.join(":");
+    // A part left empty counts as 00 (e.g. "12:34" -> "12:34:00")
+    return padded.map((x) => (x === "" ? "00" : x)).join(":");
 }
 
 function isValidTime(val) {
@@ -70,20 +71,35 @@ function convertPmTo24Hour(timeStr, flyTimeStr) {
     return t;
 }
 
-const PART_LABELS = ["HH", "MM", "SS"];
 const PART_MAX = [23, 59, 59];
+const POP_W = 210;
+const POP_H = 96;
+
+function CheckIcon() {
+    return (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+    );
+}
+function CrossIcon() {
+    return (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+        </svg>
+    );
+}
 
 /**
- * Time entry dialog. Three separate boxes (hours / minutes / seconds) so the
- * operator never has to type or fight with colons. Cursor auto-advances.
+ * Compact time popover under the clicked cell.
+ * Three boxes (HH / MM / SS) with auto-advance, a tick to save, a cross to close.
+ * Tapping anywhere outside closes it. Positioned fixed and clamped to the
+ * viewport so it is never clipped by the table scroll box on phones.
  */
 function TimeInput({
-    title,
-    subtitle,
     value,
     onChange,
     onSave,
-    onClear,
     onCancel,
     saving,
     showDoubleStamp = false,
@@ -93,15 +109,49 @@ function TimeInput({
 }) {
     const [h = "", m = "", sec = ""] = String(value || "").split(":");
     const parts = [h, m, sec];
+    // Always holds the newest parts, including ones emitted in this same event
+    // (a blur fired by moving focus must not overwrite a value just typed).
+    const partsRef = useRef(parts);
+    useEffect(() => {
+        partsRef.current = parts;
+    });
+
     const ref0 = useRef(null);
     const ref1 = useRef(null);
     const ref2 = useRef(null);
     const refs = [ref0, ref1, ref2];
+    const boxRef = useRef(null);
+    const [pos, setPos] = useState(null);
 
-    useEffect(() => {
+    // Position relative to the cell once mounted, then focus the first box.
+    const setBox = useCallback((node) => {
+        boxRef.current = node;
+        if (!node) return;
+        const cell = node.parentElement;
+        if (cell) {
+            const r = cell.getBoundingClientRect();
+            let top = r.bottom + 2;
+            let left = r.left;
+            if (top + POP_H > window.innerHeight - 4) top = Math.max(4, r.top - POP_H - 2);
+            if (left + POP_W > window.innerWidth - 4) left = Math.max(4, window.innerWidth - POP_W - 4);
+            setPos({ top, left });
+        }
         ref0.current?.focus();
         ref0.current?.select();
     }, []);
+
+    // Tap / click outside closes the popover
+    useEffect(() => {
+        const onDown = (e) => {
+            if (boxRef.current && !boxRef.current.contains(e.target)) onCancel();
+        };
+        document.addEventListener("mousedown", onDown);
+        document.addEventListener("touchstart", onDown);
+        return () => {
+            document.removeEventListener("mousedown", onDown);
+            document.removeEventListener("touchstart", onDown);
+        };
+    }, [onCancel]);
 
     const focusPart = (i) => {
         const el = refs[i]?.current;
@@ -111,39 +161,41 @@ function TimeInput({
     };
 
     const emit = (next) => {
+        partsRef.current = next;
         onChange(next.every((x) => x === "") ? "" : next.join(":"));
     };
 
     const setPart = (i, rawVal) => {
         const digitsAll = String(rawVal).replace(/\D/g, "");
-        // Pasted / typed a full time into one box -> spread across boxes
         if (digitsAll.length > 2) {
+            // A whole time pasted/typed into one box -> spread it
             const spread = [digitsAll.slice(0, 2), digitsAll.slice(2, 4), digitsAll.slice(4, 6)];
             emit(spread);
             focusPart(spread[2] ? 2 : spread[1] ? 1 : 0);
             return;
         }
         let digits = digitsAll;
-        const next = [...parts];
-        // First digit already too big for this slot (e.g. "7" hours, "8" minutes) -> pad and move on
-        if (digits.length === 1 && Number(digits) > (i === 0 ? 2 : 5)) {
-            digits = "0" + digits;
-        }
+        const next = [...partsRef.current];
+        // First digit too big for this slot (e.g. 7 hours, 8 minutes) -> pad and move on
+        if (digits.length === 1 && Number(digits) > (i === 0 ? 2 : 5)) digits = "0" + digits;
         next[i] = digits;
         emit(next);
         if (digits.length === 2 && i < 2) focusPart(i + 1);
     };
 
     const blurPart = (i) => {
-        const next = [...parts];
-        next[i] = padPart(next[i]);
-        if (next[i] !== parts[i]) emit(next);
+        const current = partsRef.current;
+        const padded = padPart(current[i]);
+        if (padded !== current[i]) {
+            const next = [...current];
+            next[i] = padded;
+            emit(next);
+        }
     };
 
     const normalized = normalizeTime(value);
     const isEmpty = !normalized;
     const valid = isEmpty || isValidTime(normalized);
-    const canSave = valid;
     const partInvalid = (i) => parts[i] !== "" && Number(parts[i]) > PART_MAX[i];
     const finalTime = !isEmpty && valid && flyTime ? convertPmTo24Hour(normalized, flyTime) : normalized;
     const pmApplied = !!finalTime && finalTime !== normalized;
@@ -151,7 +203,7 @@ function TimeInput({
     const handleKey = (i, e) => {
         if (e.key === "Enter") {
             e.preventDefault();
-            if (canSave) onSave();
+            if (valid) onSave();
             return;
         }
         if (e.key === "Escape") {
@@ -179,92 +231,70 @@ function TimeInput({
         }
     };
 
+    const boxClass = (i) =>
+        `w-10 h-9 text-center text-sm font-bold tabular-nums rounded border outline-none
+         ${partInvalid(i) ? "border-red-400 bg-red-50 text-red-700" : "border-slate-300 focus:border-[#0ea5e9] text-[#122654]"}`;
+
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+            ref={setBox}
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => {
-                if (e.target === e.currentTarget) onCancel();
-            }}
+            style={
+                pos
+                    ? { position: "fixed", top: pos.top, left: pos.left, width: POP_W }
+                    : { position: "absolute", top: "100%", left: 0, width: POP_W }
+            }
+            className="z-50 bg-white border-2 border-[#0ea5e9] rounded-lg p-2 shadow-lg text-left"
         >
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs p-4 text-left">
-                <p className="text-[#122654] font-bold text-sm leading-tight">{title}</p>
-                {subtitle && <p className="text-slate-400 text-xs mt-0.5">{subtitle}</p>}
+            <div className="flex items-center gap-1">
+                <input ref={ref0} type="text" inputMode="numeric" autoComplete="off" placeholder="00" value={parts[0]}
+                    onChange={(e) => setPart(0, e.target.value)} onBlur={() => blurPart(0)}
+                    onFocus={(e) => e.target.select()} onKeyDown={(e) => handleKey(0, e)} className={boxClass(0)} />
+                <span className="text-slate-400 font-bold">:</span>
+                <input ref={ref1} type="text" inputMode="numeric" autoComplete="off" placeholder="00" value={parts[1]}
+                    onChange={(e) => setPart(1, e.target.value)} onBlur={() => blurPart(1)}
+                    onFocus={(e) => e.target.select()} onKeyDown={(e) => handleKey(1, e)} className={boxClass(1)} />
+                <span className="text-slate-400 font-bold">:</span>
+                <input ref={ref2} type="text" inputMode="numeric" autoComplete="off" placeholder="00" value={parts[2]}
+                    onChange={(e) => setPart(2, e.target.value)} onBlur={() => blurPart(2)}
+                    onFocus={(e) => e.target.select()} onKeyDown={(e) => handleKey(2, e)} className={boxClass(2)} />
 
-                <div className="flex items-start justify-center gap-1 mt-4">
-                    {parts.map((part, i) => (
-                        <div key={i} className="flex items-start gap-1">
-                            <div className="flex flex-col items-center">
-                                <input
-                                    ref={refs[i]}
-                                    type="text"
-                                    inputMode="numeric"
-                                    autoComplete="off"
-                                    placeholder="00"
-                                    value={part}
-                                    onChange={(e) => setPart(i, e.target.value)}
-                                    onBlur={() => blurPart(i)}
-                                    onFocus={(e) => e.target.select()}
-                                    onKeyDown={(e) => handleKey(i, e)}
-                                    className={`w-16 h-14 text-center text-2xl font-bold tabular-nums rounded-lg border-2 outline-none transition-colors
-                                      ${partInvalid(i)
-                                            ? "border-red-400 bg-red-50 text-red-700"
-                                            : "border-slate-200 focus:border-[#0ea5e9] text-[#122654]"}`}
-                                />
-                                <span className="text-[10px] text-slate-400 mt-1 font-medium">{PART_LABELS[i]}</span>
-                            </div>
-                            {i < 2 && <span className="text-2xl font-bold text-slate-300 leading-[3.5rem]">:</span>}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
-                    {isEmpty ? (
-                        <span>Time khali hai — Save karne se time clear ho jayega.</span>
-                    ) : !valid ? (
-                        <span className="text-red-600">Ghalat time: HH 00–23, MM/SS 00–59.</span>
-                    ) : (
-                        <span>
-                            Save hoga:{" "}
-                            <strong className="text-[#122654] tabular-nums">{finalTime}</strong>
-                            {pmApplied && (
-                                <span className="text-amber-700"> (fly time se pehle → PM samjha gaya)</span>
-                            )}
-                        </span>
-                    )}
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">
-                    Sirf number likhein — cursor khud agle box mein chala jayega. Enter = Save, Esc = Cancel.
-                </p>
-
-                {showDoubleStamp && (
-                    <label className="flex items-center gap-2 mt-3 text-xs text-slate-700 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={!!doubleStamp}
-                            onChange={(e) => onDoubleStampChange?.(e.target.checked)}
-                            className="w-3.5 h-3.5 accent-[#0ea5e9]"
-                        />
-                        Double Stamp
-                    </label>
-                )}
-
-                <div className="flex gap-2 mt-4">
-                    <button onClick={onClear} className="flex-1 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg py-2 font-medium">
-                        Clear
-                    </button>
-                    <button onClick={onCancel} className="flex-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-lg py-2 font-medium">
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onSave}
-                        disabled={saving || !canSave}
-                        className="flex-1 text-xs bg-[#0ea5e9] text-white hover:bg-[#0284c7] rounded-lg py-2 font-semibold disabled:opacity-50"
-                    >
-                        {saving ? "Saving…" : "Save"}
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    title="Save"
+                    onClick={onSave}
+                    disabled={saving || !valid}
+                    className="ml-auto w-8 h-8 rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-40 flex items-center justify-center"
+                >
+                    <CheckIcon />
+                </button>
+                <button
+                    type="button"
+                    title="Close"
+                    onClick={onCancel}
+                    className="w-8 h-8 rounded bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center"
+                >
+                    <CrossIcon />
+                </button>
             </div>
+
+            {showDoubleStamp && (
+                <label className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-700 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        checked={!!doubleStamp}
+                        onChange={(e) => onDoubleStampChange?.(e.target.checked)}
+                        className="w-4 h-4 accent-[#0ea5e9]"
+                    />
+                    Double Stamp
+                </label>
+            )}
+
+            {!valid ? (
+                <p className="text-[10px] text-red-600 mt-1">Invalid: HH 00-23, MM/SS 00-59</p>
+            ) : pmApplied ? (
+                <p className="text-[10px] text-amber-700 mt-1">Will be saved as {finalTime} (PM)</p>
+            ) : null}
         </div>
     );
 }
@@ -318,6 +348,16 @@ export default function CreateResultPage() {
             startTime: existing?.startTime || tournament?.startTime || "",
             doubleStamps: stamps.slice(0, totalSlots),
         };
+    };
+
+    /** Close the popover and throw away unsaved typing for that owner (cell reverts to saved value). */
+    const cancelEdit = (ownerId) => {
+        setDraftData((prev) => {
+            const next = { ...prev };
+            delete next[ownerId];
+            return next;
+        });
+        setEditingCell(null);
     };
 
     const openCell = (ownerId, field, index = null) => {
@@ -394,23 +434,6 @@ export default function CreateResultPage() {
         const startTime = normalizeTime(draft.startTime);
         times[index] = convertPmTo24Hour(times[index], startTime);
         await saveToDatabase(ownerId, { ...draft, startTime, times });
-    };
-
-    const clearFlyTime = async (ownerId) => {
-        const draft = draftData[ownerId] || getOwnerDraft(ownerId);
-        updateDraft(ownerId, "startTime", "");
-        await saveToDatabase(ownerId, { ...draft, startTime: "" });
-    };
-
-    const clearPigeonTime = async (ownerId, index) => {
-        const draft = draftData[ownerId] || getOwnerDraft(ownerId);
-        const times = [...draft.times];
-        const doubleStamps = [...(draft.doubleStamps || Array(totalSlots).fill(false))];
-        times[index] = "";
-        doubleStamps[index] = false;
-        updateDraft(ownerId, "times", "", index);
-        updateDraft(ownerId, "doubleStamp", false, index);
-        await saveToDatabase(ownerId, { ...draft, times, doubleStamps });
     };
 
     if (tLoading) {
@@ -505,12 +528,9 @@ export default function CreateResultPage() {
                                                 {draft.startTime || "—"}
                                                 {editingCell?.ownerId === owner._id && editingCell?.field === "startTime" && (
                                                     <TimeInput
-                                                        title={`Fly Time — ${owner.name}`}
-                                                        subtitle={activeDate ? formatDate(activeDate) : ""}
                                                         value={draft.startTime}
                                                         onChange={(val) => updateDraft(owner._id, "startTime", val)}
-                                                        onClear={() => clearFlyTime(owner._id)}
-                                                        onCancel={() => setEditingCell(null)}
+                                                        onCancel={() => cancelEdit(owner._id)}
                                                         onSave={() => saveFlyTime(owner._id)}
                                                         saving={saving}
                                                     />
@@ -535,13 +555,10 @@ export default function CreateResultPage() {
                                                         editingCell?.field === "times" &&
                                                         editingCell?.index === idx && (
                                                             <TimeInput
-                                                                title={`Pigeon #${idx + 1} — ${owner.name}`}
-                                                                subtitle={`Fly Time: ${draft.startTime || "—"}`}
                                                                 flyTime={draft.startTime}
                                                                 value={draft.times[idx]}
                                                                 onChange={(val) => updateDraft(owner._id, "times", val, idx)}
-                                                                onClear={() => clearPigeonTime(owner._id, idx)}
-                                                                onCancel={() => setEditingCell(null)}
+                                                                onCancel={() => cancelEdit(owner._id)}
                                                                 onSave={() => savePigeonTime(owner._id, idx)}
                                                                 saving={saving}
                                                                 showDoubleStamp
