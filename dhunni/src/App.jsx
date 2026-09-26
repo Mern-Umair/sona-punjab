@@ -44,7 +44,7 @@ const App = () => {
           <HeroBanner />
           <div className="flex-1 flex flex-col">
             <Headline />
-            <ClubTournaments />
+            <TournamentSection all />
           </div>
           <Footer />
         </div>

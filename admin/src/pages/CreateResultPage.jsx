@@ -502,8 +502,8 @@ export default function CreateResultPage() {
                     <table className="results-table w-full" style={{ fontSize: "clamp(9px, 2.2vw, 14px)" }}>
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50">
-                                <th className="sticky-col col-sr text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Sr#</th>
-                                <th className="sticky-col col-owner text-left text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Owner</th>
+                                <th className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Sr#</th>
+                                <th className="text-left text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Owner</th>
                                 <th className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Fly Time</th>
                                 {Array.from({ length: pigeons }).map((_, i) => (
                                     <th key={i} className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
@@ -531,8 +531,8 @@ export default function CreateResultPage() {
                                     const draft = getOwnerDraft(owner._id);
                                     return (
                                         <tr key={owner._id}>
-                                            <td className="sticky-col col-sr text-center text-slate-400" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>{i + 1}</td>
-                                            <td className="sticky-col col-owner whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
+                                            <td className="text-center text-slate-400" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>{i + 1}</td>
+                                            <td className="whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
                                                 {/* w-max: the cell's min width must include avatar + full name, so the name never spills into the next column */}
                                                 <div className="flex items-center gap-2 w-max">
                                                     {owner.imageUrl ? (
@@ -573,8 +573,8 @@ export default function CreateResultPage() {
                                                     <span className="inline-flex flex-col items-center justify-center gap-0.5">
                                                         {draft.times[idx] || "—"}
                                                         {draft.doubleStamps?.[idx] && draft.times[idx] ? (
-                                                            <span className="inline-block rounded px-1 py-px text-[9px] font-semibold leading-none bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap">
-                                                                Double Stamp
+                                                            <span title="Double Stamp" className="inline-block rounded px-1 py-px text-[9px] font-semibold leading-none bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap">
+                                                                D
                                                             </span>
                                                         ) : null}
                                                     </span>

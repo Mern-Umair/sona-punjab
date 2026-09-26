@@ -74,27 +74,15 @@ html, body, #root {
 .results-table thead th {
   border-color: #2c447a;
 }
-/* Sr, Picture and Name stay pinned while the rest of the table scrolls sideways */
-.results-table .sticky-col {
-  position: sticky;
-  z-index: 2;
-  background-color: inherit;
-}
-.results-table thead .sticky-col {
-  z-index: 3;
-}
 .rt-col-sr {
-  left: 0;
   width: var(--sr-w);
   min-width: var(--sr-w);
 }
 .rt-col-pic {
-  left: var(--sr-w);
   width: var(--pic-w);
   min-width: var(--pic-w);
 }
 .rt-col-name {
-  left: calc(var(--sr-w) + var(--pic-w));
   min-width: clamp(70px, 20vw, 160px);
   max-width: clamp(110px, 30vw, 240px);
 }
@@ -126,7 +114,7 @@ html, body, #root {
   font-size: clamp(10px, 2.6vw, 14px);
 }
 .rt-info {
-  font-size: clamp(10px, 2.6vw, 14px);
+  font-size: clamp(7px, 2.55vw, 14px);
 }
 .results-table tbody tr:nth-child(odd):not(.is-blinking) {
   background-color: #ecf0f5;

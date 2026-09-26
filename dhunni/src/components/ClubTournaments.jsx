@@ -15,8 +15,9 @@ function TournamentCard({ tournament }) {
     const hasResults = totalResults.length > 0;
 
     return (
-        <div className="border-b border-gray py-6">
-            <div className="flex items-start gap-6">
+        <div className="border-b border-gray py-4 sm:py-6">
+            {/* Phone: poster above the table (full width). Larger screens: side by side. */}
+            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-6">
                 {/* Poster */}
                 <Link to={`/results/${tournament._id}`} className="shrink-0">
                     {tournament.posterUrl ? (
@@ -33,7 +34,7 @@ function TournamentCard({ tournament }) {
                 </Link>
 
                 {/* Title + Date + Table */}
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 w-full">
                     <Link
                         to={`/results/${tournament._id}`}
                         className="text-sky-600 font-sans font-bold text-lg sm:text-2xl leading-snug hover:underline block"
@@ -50,14 +51,7 @@ function TournamentCard({ tournament }) {
                     </p>
 
                     <div className="overflow-x-auto">
-                        <table className="results-table w-full table-fixed text-xs sm:text-base font-sans">
-                            <colgroup>
-                                <col style={{ width: "6%" }} />
-                                <col style={{ width: "32%" }} />
-                                <col style={{ width: "28%" }} />
-                                <col style={{ width: "17%" }} />
-                                <col style={{ width: "17%" }} />
-                            </colgroup>
+                        <table className="results-table w-full font-sans">
                             <thead>
                                 <tr className="bg-navy">
                                     <th className="px-1 py-1.5 text-left text-white font-semibold text-[10px] sm:text-sm">#</th>
@@ -81,7 +75,7 @@ function TournamentCard({ tournament }) {
                                             <td className="px-1 py-2 text-navy font-semibold">{row.owner?.name || "—"}</td>
                                             <td className="px-1 py-2 text-gray hidden sm:table-cell">{row.owner?.city || ""}</td>
                                             <td className="px-1 py-2 text-dark whitespace-nowrap">{row.total || "—"}</td>
-                                            <td className="px-1 py-2 text-dark whitespace-nowrap">{prizeDetails[i] || "—"}</td>
+                                            <td className="px-1 py-2 text-dark">{prizeDetails[i] || "—"}</td>
                                         </tr>
                                     ))
                                 )}

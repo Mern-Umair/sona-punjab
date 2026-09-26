@@ -27,8 +27,7 @@ function StampIcon() {
       title="Double Stamp"
       className="rt-stamp inline-block rounded px-1 py-px font-semibold leading-none bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap"
     >
-      <span className="sm:hidden">D</span>
-      <span className="hidden sm:inline">Double Stamp</span>
+      D
     </span>
   );
 }
@@ -228,32 +227,24 @@ function TournamentBlock({ tournament }) {
         </button>
       </div>
 
-      {/* Info box: compact single row on phones, stacked lines on larger screens */}
-      <div className="rt-info mx-2 sm:mx-4 mb-2 sm:mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-2 py-1.5 sm:px-4 sm:py-3 text-dark">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-col sm:items-start sm:gap-y-2">
+      {/* Info box: full wording everywhere; each item stays on ONE line (font shrinks on phones) */}
+      <div className="rt-info mx-2 sm:mx-4 mb-2 sm:mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-2 py-1 sm:px-4 sm:py-3 text-dark overflow-hidden">
+        <div className="flex flex-col gap-y-0.5 sm:gap-y-2">
           <p className="whitespace-nowrap">
-            <span className="hidden sm:inline">
-              Lofts: <strong>{lofts}</strong>, Total pigeons: <strong>{totalPigeonSlots}</strong>,
-              {" "}Pigeons landed: <strong>{landed}</strong>, Pigeons remaining: <strong>{remaining}</strong>
-            </span>
-            <span className="sm:hidden">
-              Lofts <strong>{lofts}</strong> · Pigeons <strong>{totalPigeonSlots}</strong> · Landed{" "}
-              <strong>{landed}</strong> · Remaining <strong>{remaining}</strong>
-            </span>
+            Lofts: <strong>{lofts}</strong>, Total pigeons: <strong>{totalPigeonSlots}</strong>,
+            {" "}Pigeons landed: <strong>{landed}</strong>, Pigeons remaining: <strong>{remaining}</strong>
           </p>
           {isDay && (
             <>
-              <p>
-                <span className="inline-block bg-cyan-600 text-white font-semibold px-1.5 py-0.5 rounded whitespace-nowrap">
-                  <span className="hidden sm:inline">First winner pigeon time: </span>
-                  <span className="sm:hidden">First: </span>
+              <p className="whitespace-nowrap">
+                <span className="inline-block bg-cyan-600 text-white font-semibold px-1.5 py-0.5 rounded">
+                  First winner pigeon time:{" "}
                   {firstWinnerPigeon ? `${firstWinnerPigeon.time}, ${firstWinnerPigeon.ownerName}` : "No results yet"}
                 </span>
               </p>
-              <p>
-                <span className="inline-block bg-green-700 text-white font-semibold px-1.5 py-0.5 rounded whitespace-nowrap">
-                  <span className="hidden sm:inline">Last winner pigeon time: </span>
-                  <span className="sm:hidden">Last: </span>
+              <p className="whitespace-nowrap">
+                <span className="inline-block bg-green-700 text-white font-semibold px-1.5 py-0.5 rounded">
+                  Last winner pigeon time:{" "}
                   {lastWinnerPigeon ? `${lastWinnerPigeon.time}, ${lastWinnerPigeon.ownerName}` : "No results yet"}
                 </span>
               </p>
@@ -266,9 +257,9 @@ function TournamentBlock({ tournament }) {
         <table className="results-table w-full font-sans">
           <thead>
             <tr className="bg-navy text-white">
-              <th className="sticky-col rt-col-sr text-center font-semibold">Sr</th>
-              <th className="sticky-col rt-col-pic text-center font-semibold">Picture</th>
-              <th className="sticky-col rt-col-name text-left font-semibold">Name</th>
+              <th className="rt-col-sr text-center font-semibold">Sr</th>
+              <th className="rt-col-pic text-center font-semibold">Picture</th>
+              <th className="rt-col-name text-left font-semibold">Name</th>
               <th className="text-center font-semibold whitespace-nowrap">Start Time</th>
               {isDay
                 ? Array.from({ length: pigeons }).map((_, n) => (
@@ -302,8 +293,8 @@ function TournamentBlock({ tournament }) {
                     key={owner._id}
                     className={`transition-colors ${isBlinking ? "is-blinking animate-pulse bg-yellow-200" : ""}`}
                   >
-                    <td className="sticky-col rt-col-sr text-center text-dark font-bold">{i + 1}</td>
-                    <td className="sticky-col rt-col-pic text-center">
+                    <td className="rt-col-sr text-center text-dark font-bold">{i + 1}</td>
+                    <td className="rt-col-pic text-center">
                       {owner.imageUrl ? (
                         <img
                           src={owner.imageUrl}
@@ -316,7 +307,7 @@ function TournamentBlock({ tournament }) {
                         </span>
                       )}
                     </td>
-                    <td className="sticky-col rt-col-name">
+                    <td className="rt-col-name">
                       <p className="rt-name text-navy font-semibold leading-tight">{owner.name || "—"}</p>
                       {owner.city && <p className="rt-city text-gray leading-tight">{owner.city}</p>}
                     </td>
@@ -379,7 +370,8 @@ function TournamentBlock({ tournament }) {
   );
 }
 
-export default function TournamentSection({ clubId }) {
+/** Home page: tournaments marked "On Screen". Tournaments tab (all=true): every tournament, same blocks. */
+export default function TournamentSection({ clubId, all = false }) {
   const { id } = useParams();
 
   const { data: singleData, isLoading: singleLoading } = useGetTournamentQuery(id, {
@@ -387,7 +379,7 @@ export default function TournamentSection({ clubId }) {
   });
 
   const { data, isLoading } = useGetTournamentsQuery(
-    `?screen=${encodeURIComponent("On Screen")}`,
+    all ? "" : `?screen=${encodeURIComponent("On Screen")}`,
     { skip: !!id }
   );
 
