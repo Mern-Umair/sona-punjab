@@ -130,10 +130,17 @@ function TimeInput({
         const cell = node.parentElement;
         if (cell) {
             const r = cell.getBoundingClientRect();
+            // Keep the popover inside the table's scroll box (and the viewport) so it
+            // never hangs off the right edge of the table on phones.
+            const wrap = cell.closest(".overflow-x-auto");
+            const w = wrap ? wrap.getBoundingClientRect() : { left: 0, right: window.innerWidth };
+            const minLeft = Math.max(4, w.left + 4);
+            const maxLeft = Math.min(window.innerWidth, w.right) - POP_W - 4;
             let top = r.bottom + 2;
             let left = r.left;
             if (top + POP_H > window.innerHeight - 4) top = Math.max(4, r.top - POP_H - 2);
-            if (left + POP_W > window.innerWidth - 4) left = Math.max(4, window.innerWidth - POP_W - 4);
+            if (left > maxLeft) left = Math.max(minLeft, maxLeft);
+            if (left < minLeft) left = minLeft;
             setPos({ top, left });
         }
         ref0.current?.focus();
@@ -474,24 +481,24 @@ export default function CreateResultPage() {
                         );
                     })}
                 </div>
-                <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-                    <table className="results-table w-full text-xs sm:text-sm min-w-[640px]">
+                <div className="overflow-x-auto">
+                    <table className="results-table w-full text-xs sm:text-sm">
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50">
-                                <th className="px-3 py-3 text-left text-slate-500 font-medium w-10">Sr#</th>
-                                <th className="px-3 py-3 text-left text-slate-500 font-medium">Owner</th>
-                                <th className="px-3 py-3 text-center text-slate-500 font-medium">Fly Time</th>
+                                <th className="sticky-col left-0 px-2 py-3 text-center text-slate-500 font-medium whitespace-nowrap w-9 min-w-[36px]">Sr#</th>
+                                <th className="sticky-col left-9 px-3 py-3 text-left text-slate-500 font-medium whitespace-nowrap">Owner</th>
+                                <th className="px-3 py-3 text-center text-slate-500 font-medium whitespace-nowrap">Fly Time</th>
                                 {Array.from({ length: pigeons }).map((_, i) => (
-                                    <th key={i} className="px-3 py-3 text-center text-slate-500 font-medium">
+                                    <th key={i} className="px-3 py-3 text-center text-slate-500 font-medium whitespace-nowrap">
                                         {i + 1}
                                     </th>
                                 ))}
                                 {Array.from({ length: helperPigeons }).map((_, i) => (
-                                    <th key={`h${i}`} className="px-3 py-3 text-center text-slate-500 font-medium">
+                                    <th key={`h${i}`} className="px-3 py-3 text-center text-slate-500 font-medium whitespace-nowrap">
                                         {pigeons + i + 1}
                                     </th>
                                 ))}
-                                <th className="px-3 py-3 text-center text-slate-500 font-medium">Result</th>
+                                <th className="px-3 py-3 text-center text-slate-500 font-medium whitespace-nowrap">Result</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -507,9 +514,10 @@ export default function CreateResultPage() {
                                     const draft = getOwnerDraft(owner._id);
                                     return (
                                         <tr key={owner._id}>
-                                            <td className="px-3 py-3 text-slate-400">{i + 1}</td>
-                                            <td className="px-3 py-3">
-                                                <div className="flex items-center gap-2">
+                                            <td className="sticky-col left-0 px-2 py-3 text-center text-slate-400">{i + 1}</td>
+                                            <td className="sticky-col left-9 px-3 py-3 whitespace-nowrap">
+                                                {/* w-max: the cell's min width must include avatar + full name, so the name never spills into the next column */}
+                                                <div className="flex items-center gap-2 w-max">
                                                     {owner.imageUrl ? (
                                                         <img src={owner.imageUrl} className="w-8 h-8 rounded-full object-cover" alt="" />
                                                     ) : (
@@ -517,13 +525,13 @@ export default function CreateResultPage() {
                                                             {owner.name?.charAt(0)}
                                                         </div>
                                                     )}
-                                                    <span className="text-slate-700 font-medium">{owner.name}</span>
+                                                    <span className="text-slate-700 font-medium whitespace-nowrap">{owner.name}</span>
                                                 </div>
                                             </td>
 
                                             <td
                                                 onClick={() => openCell(owner._id, "startTime")}
-                                                className="px-2 py-3 text-center cursor-pointer hover:bg-slate-50 relative"
+                                                className="px-2 py-3 text-center cursor-pointer hover:bg-slate-50 relative whitespace-nowrap"
                                             >
                                                 {draft.startTime || "—"}
                                                 {editingCell?.ownerId === owner._id && editingCell?.field === "startTime" && (
@@ -541,7 +549,7 @@ export default function CreateResultPage() {
                                                 <td
                                                     key={idx}
                                                     onClick={() => openCell(owner._id, "times", idx)}
-                                                    className="px-2 py-3 text-center cursor-pointer hover:bg-slate-50 relative"
+                                                    className="px-2 py-3 text-center cursor-pointer hover:bg-slate-50 relative whitespace-nowrap"
                                                 >
                                                     <span className="inline-flex flex-col items-center justify-center gap-0.5">
                                                         {draft.times[idx] || "—"}
@@ -571,7 +579,7 @@ export default function CreateResultPage() {
                                                 </td>
                                             ))}
 
-                                            <td className="px-3 py-3 text-center font-bold text-[#122654]">
+                                            <td className="px-3 py-3 text-center font-bold text-[#122654] whitespace-nowrap">
                                                 {existing?.total || "00:00:00"}
                                             </td>
                                         </tr>

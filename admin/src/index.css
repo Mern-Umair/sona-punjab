@@ -16,14 +16,30 @@ html, body, #root {
   font-family: 'Inter', sans-serif;
 }
 
-/* Data tables: striped odd rows + full grid borders */
+/* Data tables: striped odd rows + full grid borders.
+   Separate borders (not collapsed) so sticky columns keep their borders while scrolling. */
 .results-table {
-  border-collapse: collapse;
-  border: 1px solid #cbd5e1;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-top: 1px solid #cbd5e1;
+  border-left: 1px solid #cbd5e1;
 }
 .results-table th,
 .results-table td {
-  border: 1px solid #cbd5e1;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+}
+/* Sr# and Owner columns stay visible while the table scrolls sideways on phones */
+.results-table .sticky-col {
+  position: sticky;
+  z-index: 2;
+  background-color: inherit;
+}
+.results-table thead .sticky-col {
+  z-index: 3;
+}
+.results-table thead tr {
+  background-color: #f8fafc;
 }
 .results-table tbody tr:nth-child(odd) {
   background-color: #ecf0f5;
