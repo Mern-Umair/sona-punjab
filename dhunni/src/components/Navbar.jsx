@@ -53,15 +53,14 @@ export default function Navbar() {
   }, [clubsOpen]);
 
   const isClubActive = pathname.startsWith("/club/");
-  const activeClub = clubs.find((c) => pathname === `/club/${c._id}`);
 
   // Fluid sizing: shrinks smoothly as the screen gets narrower
   const linkStyle = {
-    fontSize: "clamp(11px, 2.8vw, 15px)",
-    padding: "clamp(4px, 1.2vw, 8px) clamp(8px, 2.2vw, 16px)",
+    fontSize: "clamp(10px, 2.6vw, 15px)",
+    padding: "clamp(4px, 1.1vw, 8px) clamp(6px, 1.6vw, 16px)",
   };
   const linkBase =
-    "font-sans font-semibold uppercase tracking-wide text-white rounded transition-colors whitespace-nowrap hover:bg-white/10";
+    "font-sans font-semibold text-white rounded transition-colors whitespace-nowrap hover:bg-white/10 shrink-0";
   const linkActive = "font-bold";
 
   return (
@@ -69,11 +68,12 @@ export default function Navbar() {
       <div
         className="w-full max-w-7xl mx-auto flex items-center justify-between gap-2"
         style={{
-          padding: "clamp(4px, 1.2vw, 8px) clamp(8px, 2.5vw, 32px)",
+          padding: "clamp(4px, 1.2vw, 8px) clamp(6px, 2.5vw, 32px)",
           minHeight: "clamp(40px, 9vw, 56px)",
         }}
       >
-        <nav className="flex items-center min-w-0" style={{ gap: "clamp(2px, 0.8vw, 6px)" }}>
+        {/* Never wraps or overlaps: if a screen is too narrow the links row scrolls sideways */}
+        <nav className="flex items-center min-w-0 overflow-x-auto no-scrollbar" style={{ gap: "clamp(2px, 0.8vw, 6px)" }}>
           <Link to="/" style={linkStyle} className={`${linkBase} ${pathname === "/" ? linkActive : ""}`}>
             Home
           </Link>
@@ -87,7 +87,7 @@ export default function Navbar() {
               style={linkStyle}
               className={`${linkBase} flex items-center gap-1 max-w-[46vw] ${isClubActive ? linkActive : ""}`}
             >
-              <span className="truncate">{activeClub ? activeClub.name : "Clubs"}</span>
+              <span>Clubs</span>
               <ChevronIcon open={clubsOpen} />
             </button>
 
@@ -132,8 +132,8 @@ export default function Navbar() {
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            fontSize: "clamp(10px, 2.5vw, 14px)",
-            padding: "clamp(3px, 1vw, 6px) clamp(7px, 2vw, 12px)",
+            fontSize: "clamp(9px, 2.3vw, 14px)",
+            padding: "clamp(3px, 1vw, 6px) clamp(6px, 1.8vw, 12px)",
           }}
           className="shrink-0 font-semibold rounded border border-white/60 text-white hover:bg-white hover:text-[#003F72] transition-colors whitespace-nowrap"
         >

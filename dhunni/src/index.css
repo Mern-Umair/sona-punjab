@@ -114,7 +114,16 @@ html, body, #root {
   font-size: clamp(10px, 2.6vw, 14px);
 }
 .rt-info {
-  font-size: clamp(7px, 2.55vw, 14px);
+  font-size: clamp(7px, 2.45vw, 14px);
+}
+
+/* Hide the scrollbar of a horizontally scrollable row (menu links) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 .results-table tbody tr:nth-child(odd):not(.is-blinking) {
   background-color: #ecf0f5;
