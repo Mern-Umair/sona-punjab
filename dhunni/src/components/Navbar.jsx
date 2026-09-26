@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useGetClubsQuery } from "../../redux/api/clubApi";
 
@@ -17,11 +17,14 @@ function ChevronIcon({ open }) {
   );
 }
 
+const MIN_FONT_PX = 8;
+
 /**
  * Menu bar styled after sikeryalipigeon.com: a full-width blue bar at the very top
- * (the slider sits below it) with plain white links and a "Clubs" dropdown.
- * One single row on every screen size — no hamburger; sizes shrink with the
- * viewport via clamp().
+ * (the slider sits below it) with plain white links and a "Clubs" dropdown that
+ * shows the selected club's name. One single row on every screen size, no hamburger.
+ * Sizes shrink with the viewport via clamp(); a long club name additionally shrinks
+ * its own font until it fits, so it never collides with "Tournaments".
  */
 export default function Navbar() {
   const { pathname } = useLocation();
@@ -31,6 +34,7 @@ export default function Navbar() {
   const [clubsOpen, setClubsOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
   const dropdownRef = useRef(null);
+  const labelRef = useRef(null);
 
   // Close the dropdown on navigation (state adjustment during render, no effect needed)
   if (pathname !== lastPath) {
@@ -53,6 +57,36 @@ export default function Navbar() {
   }, [clubsOpen]);
 
   const isClubActive = pathname.startsWith("/club/");
+  const activeClub = clubs.find((c) => pathname === `/club/${c._id}`);
+  const buttonLabel = activeClub ? activeClub.name : "Clubs";
+
+  // Fit the club name to the space left between "Home" and "Tournaments":
+  // start at the normal size, then shrink the font just enough for the whole
+  // name to fit on one line. Re-runs when the name or the screen size changes.
+  useLayoutEffect(() => {
+    const el = labelRef.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.fontSize = ""; // reset to the fluid base size
+      el.style.whiteSpace = "nowrap";
+      const base = parseFloat(getComputedStyle(el).fontSize);
+      const needed = el.scrollWidth;
+      const available = el.clientWidth;
+      if (needed > available && available > 0) {
+        const scaled = Math.floor(base * (available / needed) * 100) / 100;
+        if (scaled >= MIN_FONT_PX) {
+          el.style.fontSize = `${scaled}px`;
+        } else {
+          // Too long even at the smallest readable size: keep 8px and wrap onto a second line
+          el.style.fontSize = `${MIN_FONT_PX}px`;
+          el.style.whiteSpace = "normal";
+        }
+      }
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [buttonLabel, clubs.length]);
 
   // Fluid sizing: shrinks smoothly as the screen gets narrower
   const linkStyle = {
@@ -60,7 +94,7 @@ export default function Navbar() {
     padding: "clamp(4px, 1.1vw, 8px) clamp(6px, 1.6vw, 16px)",
   };
   const linkBase =
-    "font-sans font-semibold text-white rounded transition-colors whitespace-nowrap hover:bg-white/10 shrink-0";
+    "font-sans font-semibold text-white rounded transition-colors whitespace-nowrap hover:bg-white/10";
   const linkActive = "font-bold";
 
   return (
@@ -72,22 +106,24 @@ export default function Navbar() {
           minHeight: "clamp(40px, 9vw, 56px)",
         }}
       >
-        {/* Never wraps or overlaps: if a screen is too narrow the links row scrolls sideways */}
-        <nav className="flex items-center min-w-0 overflow-x-auto no-scrollbar" style={{ gap: "clamp(2px, 0.8vw, 6px)" }}>
-          <Link to="/" style={linkStyle} className={`${linkBase} ${pathname === "/" ? linkActive : ""}`}>
+        <nav className="flex items-center min-w-0 flex-1" style={{ gap: "clamp(2px, 0.8vw, 6px)" }}>
+          <Link to="/" style={linkStyle} className={`${linkBase} shrink-0 ${pathname === "/" ? linkActive : ""}`}>
             Home
           </Link>
 
-          <div ref={dropdownRef} className="relative min-w-0">
+          {/* The dropdown takes whatever width is left; the name inside shrinks to fit it */}
+          <div ref={dropdownRef} className="relative min-w-0 shrink" style={{ flex: "0 1 auto" }}>
             <button
               type="button"
               onClick={() => setClubsOpen((o) => !o)}
               aria-haspopup="menu"
               aria-expanded={clubsOpen}
               style={linkStyle}
-              className={`${linkBase} flex items-center gap-1 max-w-[46vw] ${isClubActive ? linkActive : ""}`}
+              className={`${linkBase} flex items-center gap-1 w-full min-w-0 ${isClubActive ? linkActive : ""}`}
             >
-              <span>Clubs</span>
+              <span ref={labelRef} className="block min-w-0 overflow-hidden whitespace-nowrap leading-tight">
+                {buttonLabel}
+              </span>
               <ChevronIcon open={clubsOpen} />
             </button>
 
@@ -121,7 +157,7 @@ export default function Navbar() {
           <Link
             to="/tournaments"
             style={linkStyle}
-            className={`${linkBase} ${pathname === "/tournaments" ? linkActive : ""}`}
+            className={`${linkBase} shrink-0 ${pathname === "/tournaments" ? linkActive : ""}`}
           >
             Tournaments
           </Link>
