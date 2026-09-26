@@ -25,41 +25,11 @@ function StampIcon() {
   return (
     <span
       title="Double Stamp"
-      className="inline-block rounded px-1 py-px text-[7px] sm:text-[9px] font-semibold leading-none bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap"
+      className="rt-stamp inline-block rounded px-1 py-px font-semibold leading-none bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap"
     >
-      Double Stamp
+      <span className="sm:hidden">D</span>
+      <span className="hidden sm:inline">Double Stamp</span>
     </span>
-  );
-}
-
-// Small inline icons — no new dependency needed
-function HouseIcon() {
-  return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10.5L12 3l9 7.5M5 9.5V21h14V9.5" />
-    </svg>
-  );
-}
-function ArrowDownIcon() {
-  return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v14m0 0l-5-5m5 5l5-5" />
-    </svg>
-  );
-}
-function CheckIcon() {
-  return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
-function ClockIcon() {
-  return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <circle cx="12" cy="12" r="9" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
-    </svg>
   );
 }
 
@@ -215,159 +185,162 @@ function TournamentBlock({ tournament }) {
     };
   }, []);
 
+  const isDay = !isTotal && !isDoubleTotal;
+  const lofts = tournament.lofts || tournament.owners?.length || 0;
+  const colCount = 5 + (isDay ? pigeons : dates.length);
+
+  const ownerResult = (owner) =>
+    results.find((r) => String(r.owner?._id || r.owner) === String(owner._id));
+
+  /** Start (fly) time shown next to the name: the owner's own start time for that day, else the tournament's. */
+  const startTimeFor = (owner) => {
+    const matched = isDay ? ownerResult(owner) : null;
+    return matched?.startTime || tournament.startTime || "—";
+  };
+
+  const tabClass = (active) =>
+    `rt-tab font-sans font-medium rounded border-2 border-navy transition-colors whitespace-nowrap ${
+      active ? "bg-navy text-white font-bold" : "bg-white text-navy hover:bg-navypale"
+    }`;
+
   return (
-    <section className="w-full mb-1 sm:mb-10">
-      <h2 className="text-navy font-heading font-bold text-lg sm:text-3xl text-center py-2 sm:py-5 px-2">
+    <section className="w-full mb-2 sm:mb-10">
+      <h2 className="rt-title text-navy font-heading font-bold text-center px-2">
         {tournament.name}
       </h2>
+      {tournament.startTime && (
+        <p className="rt-subtitle text-center text-gray font-sans mb-1 sm:mb-2">
+          Start time: <strong className="text-navy">{tournament.startTime}</strong>
+        </p>
+      )}
 
       <div className="flex justify-center items-center gap-1 sm:gap-2 flex-wrap px-2 sm:px-4 pb-2 sm:pb-4">
         {dates.map((date, i) => (
-          <button
-            key={i}
-            onClick={() => setActiveTab(i)}
-            className={`px-2 py-0.5 sm:px-5 sm:py-1.5 text-[9px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
-              ${activeTab === i
-                ? "border-navy bg-white text-navy font-bold"
-                : "border-navy text-navy bg-white hover:bg-navypale"
-              }`}
-          >
+          <button key={i} onClick={() => setActiveTab(i)} className={tabClass(activeTab === i)}>
             {formatDate(date)}
           </button>
         ))}
-        <button
-          onClick={() => setActiveTab(dates.length)}
-          className={`px-2 py-0.5 sm:px-5 sm:py-1.5 text-[9px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
-            ${isTotal
-              ? "border-navy bg-white text-navy font-bold"
-              : "border-navy text-navy bg-white hover:bg-navypale"
-            }`}
-        >
+        <button onClick={() => setActiveTab(dates.length)} className={tabClass(isTotal)}>
           Total
         </button>
-        <button
-          onClick={() => setActiveTab(dates.length + 1)}
-          className={`px-2 py-0.5 sm:px-5 sm:py-1.5 text-[9px] sm:text-sm font-sans font-medium rounded border-2 transition-colors
-            ${isDoubleTotal
-              ? "border-navy bg-navy text-white font-bold"
-              : "border-navy text-navy bg-white hover:bg-navypale"
-            }`}
-        >
+        <button onClick={() => setActiveTab(dates.length + 1)} className={tabClass(isDoubleTotal)}>
           🏷️ Double Stamp Total
         </button>
       </div>
 
-      {/* Info box — same design everywhere, font-size fluid on small screens */}
-         {/* Info box — same design everywhere, font-size fluid on small screens */}
-         <div
-        className="mx-4 mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-4 py-3 text-dark"
-        style={{ fontSize: "clamp(11px, 2.8vw, 14px)" }}
-      >
-        <p>
-          Lofts: <strong>{tournament.lofts || tournament.owners?.length || 0}</strong>,
-          {" "}Total pigeons: <strong>{totalPigeonSlots}</strong>,
-          {" "}Pigeons landed: <strong>{landed}</strong>,
-          {" "}Pigeons remaining: <strong>{remaining}</strong>
-        </p>
-        {!isTotal && !isDoubleTotal && (
-          <div className="mt-2 space-y-1">
-            <p>
-              First winner pigeon time:{" "}
-              {firstWinnerPigeon ? (
-                <>
-                  <span className="bg-cyan-600 text-white font-semibold px-1.5 py-0.5 rounded text-[11px] sm:text-xs">
-                    {firstWinnerPigeon.time}
-                  </span>
-                  {", "}{firstWinnerPigeon.ownerName}
-                </>
-              ) : (
-                "No results yet"
-              )}
-            </p>
-            <p>
-              Last winner pigeon time:{" "}
-              {lastWinnerPigeon ? (
-                <>
-                  <span className="bg-green-700 text-white font-semibold px-1.5 py-0.5 rounded text-[11px] sm:text-xs">
-                    {lastWinnerPigeon.time}
-                  </span>
-                  {", "}{lastWinnerPigeon.ownerName}
-                </>
-              ) : (
-                "No results yet"
-              )}
-            </p>
-          </div>
-        )}
+      {/* Info box: compact single row on phones, stacked lines on larger screens */}
+      <div className="rt-info mx-2 sm:mx-4 mb-2 sm:mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-2 py-1.5 sm:px-4 sm:py-3 text-dark">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-col sm:items-start sm:gap-y-2">
+          <p className="whitespace-nowrap">
+            <span className="hidden sm:inline">
+              Lofts: <strong>{lofts}</strong>, Total pigeons: <strong>{totalPigeonSlots}</strong>,
+              {" "}Pigeons landed: <strong>{landed}</strong>, Pigeons remaining: <strong>{remaining}</strong>
+            </span>
+            <span className="sm:hidden">
+              Lofts <strong>{lofts}</strong> · Pigeons <strong>{totalPigeonSlots}</strong> · Landed{" "}
+              <strong>{landed}</strong> · Remaining <strong>{remaining}</strong>
+            </span>
+          </p>
+          {isDay && (
+            <>
+              <p>
+                <span className="inline-block bg-cyan-600 text-white font-semibold px-1.5 py-0.5 rounded whitespace-nowrap">
+                  <span className="hidden sm:inline">First winner pigeon time: </span>
+                  <span className="sm:hidden">First: </span>
+                  {firstWinnerPigeon ? `${firstWinnerPigeon.time}, ${firstWinnerPigeon.ownerName}` : "No results yet"}
+                </span>
+              </p>
+              <p>
+                <span className="inline-block bg-green-700 text-white font-semibold px-1.5 py-0.5 rounded whitespace-nowrap">
+                  <span className="hidden sm:inline">Last winner pigeon time: </span>
+                  <span className="sm:hidden">Last: </span>
+                  {lastWinnerPigeon ? `${lastWinnerPigeon.time}, ${lastWinnerPigeon.ownerName}` : "No results yet"}
+                </span>
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="mx-2 sm:mx-4 overflow-x-auto border border-gray">
-        <table className="results-table w-full text-[9px] sm:text-sm font-sans table-fixed sm:table-auto">
+      <div className="mx-2 sm:mx-4 overflow-x-auto">
+        <table className="results-table w-full font-sans">
           <thead>
-            <tr className="bg-navy">
-              <th className="pl-1 pr-1 py-1.5 sm:pl-24 sm:pr-3 sm:py-3 text-left text-white font-semibold w-[110px] sm:w-auto">
-                Name
-              </th>
-              {(isTotal || isDoubleTotal)
-                ? totalDateCols.map((col, i) => (
-                  <th key={i} className="px-0.5 py-1.5 sm:px-3 sm:py-3 text-center text-white font-semibold leading-tight break-words whitespace-normal sm:whitespace-nowrap text-[7px] sm:text-sm">{col}</th>
+            <tr className="bg-navy text-white">
+              <th className="sticky-col rt-col-sr text-center font-semibold">Sr</th>
+              <th className="sticky-col rt-col-pic text-center font-semibold">Picture</th>
+              <th className="sticky-col rt-col-name text-left font-semibold">Name</th>
+              <th className="text-center font-semibold whitespace-nowrap">Start Time</th>
+              {isDay
+                ? Array.from({ length: pigeons }).map((_, n) => (
+                  <th key={n} className="text-center font-semibold whitespace-nowrap">#{n + 1}</th>
                 ))
-                : Array.from({ length: pigeons }).map((_, n) => (
-                  <th key={n} className="px-0 py-1.5 sm:px-2 sm:py-3 text-center text-white font-semibold w-[32px] sm:w-auto">#{n + 1}</th>
-                ))
-              }
-              <th className="px-0.5 py-1.5 sm:px-3 sm:py-3 text-center text-white font-semibold w-[42px] sm:w-auto">Total</th>
+                : totalDateCols.map((col, i) => (
+                  <th key={i} className="text-center font-semibold whitespace-nowrap">{col}</th>
+                ))}
+              <th className="text-center font-semibold whitespace-nowrap">Total</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={pigeons + 2} className="text-center py-8">
+                <td colSpan={colCount} className="text-center py-8">
                   <div className="inline-block w-8 h-8 border-4 border-t-transparent border-navy rounded-full animate-spin" />
                 </td>
               </tr>
             ) : !tournament.owners || tournament.owners.length === 0 ? (
               <tr>
-                <td colSpan={pigeons + 2} className="text-center py-6 text-gray text-sm">
+                <td colSpan={colCount} className="text-center py-6 text-gray">
                   No results yet.
                 </td>
               </tr>
             ) : (
               tournament.owners.map((owner, i) => {
-                const matched = results.find(
-                  (r) => String(r.owner?._id || r.owner) === String(owner._id)
-                );
+                const matched = ownerResult(owner);
                 const isBlinking = !!blinkingRows[owner._id];
                 return (
                   <tr
                     key={owner._id}
                     className={`transition-colors ${isBlinking ? "is-blinking animate-pulse bg-yellow-200" : ""}`}
                   >
-                    <td className="px-1 py-1 sm:px-3 sm:py-1.5">
-                      <div className="flex items-center gap-1 sm:gap-3">
-                        <span className="text-dark font-bold w-3 sm:w-5 text-center shrink-0 text-[8px] sm:text-sm">{i + 1}</span>
-                        {owner.imageUrl ? (
-                          <img
-                            src={owner.imageUrl}
-                            alt={owner.name}
-                            className="w-5 h-5 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-blue-500 shrink-0"
-                          />
-                        ) : (
-                          <div className="w-5 h-5 sm:w-14 sm:h-14 rounded-full bg-navypale border-2 border-blue-500 flex items-center justify-center shrink-0">
-                            <span className="text-navy text-[7px] sm:text-sm font-bold">
-                              {owner.name?.charAt(0) || "?"}
-                            </span>
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-navy font-semibold leading-tight text-[8px] sm:text-sm truncate max-w-[70px] sm:max-w-none">{owner.name || "—"}</p>
-                          {owner.city && <p className="text-gray text-[7px] sm:text-[11px] truncate max-w-[70px] sm:max-w-none">{owner.city}</p>}
-                        </div>
-                      </div>
+                    <td className="sticky-col rt-col-sr text-center text-dark font-bold">{i + 1}</td>
+                    <td className="sticky-col rt-col-pic text-center">
+                      {owner.imageUrl ? (
+                        <img
+                          src={owner.imageUrl}
+                          alt={owner.name}
+                          className="rt-avatar inline-block rounded-full object-cover border-2 border-blue-500"
+                        />
+                      ) : (
+                        <span className="rt-avatar inline-flex items-center justify-center rounded-full bg-navypale border-2 border-blue-500 text-navy font-bold">
+                          {owner.name?.charAt(0) || "?"}
+                        </span>
+                      )}
                     </td>
+                    <td className="sticky-col rt-col-name">
+                      <p className="rt-name text-navy font-semibold leading-tight">{owner.name || "—"}</p>
+                      {owner.city && <p className="rt-city text-gray leading-tight">{owner.city}</p>}
+                    </td>
+                    <td className="text-center text-dark font-semibold whitespace-nowrap">{startTimeFor(owner)}</td>
 
-                    {(isTotal || isDoubleTotal)
-                      ? dates.map((d, ti) => {
+                    {isDay
+                      ? Array.from({ length: pigeons }).map((_, ti) => {
+                        const winnerKind = winnerKindForCell(owner._id, ti);
+                        const tone =
+                          winnerKind === "first"
+                            ? "bg-cyan-600 text-white font-semibold animate-winner-blink"
+                            : winnerKind === "last"
+                              ? "bg-green-700 text-white font-semibold animate-winner-blink-last"
+                              : "text-dark font-semibold";
+                        return (
+                          <td key={ti} className={`text-center whitespace-nowrap transition-colors ${tone}`}>
+                            <span className="inline-flex flex-col items-center justify-center gap-0.5">
+                              {matched?.times?.[ti] || "—"}
+                              {matched?.doubleStamps?.[ti] && matched?.times?.[ti] ? <StampIcon /> : null}
+                            </span>
+                          </td>
+                        );
+                      })
+                      : dates.map((d, ti) => {
                         const dayIso = new Date(d).toISOString().split("T")[0];
                         const dayObj = tournament.tournamentDays?.find(
                           (day) => new Date(day.date).toISOString().split("T")[0] === dayIso
@@ -377,11 +350,11 @@ function TournamentBlock({ tournament }) {
                         );
                         if (isDoubleTotal && !dayResult?.isDoubleStamp) {
                           return (
-                            <td key={ti} className="px-0.5 py-1.5 sm:py-3 text-center text-gray text-[8px] sm:text-sm">—</td>
+                            <td key={ti} className="text-center text-dark font-semibold">—</td>
                           );
                         }
                         return (
-                          <td key={ti} className="px-0.5 py-1 sm:py-2 text-center text-gray whitespace-nowrap text-[7px] sm:text-xs">
+                          <td key={ti} className="text-center text-dark font-semibold whitespace-nowrap">
                             <span className="inline-flex flex-col items-center justify-center gap-0.5">
                               {isDoubleTotal
                                 ? (dayResult?.doubleStampTotal || "—")
@@ -390,33 +363,10 @@ function TournamentBlock({ tournament }) {
                             </span>
                           </td>
                         );
-                      })
-                      : Array.from({ length: pigeons }).map((_, ti) => {
-                        const winnerKind = winnerKindForCell(owner._id, ti);
-                        const cellTone =
-                          winnerKind === "first"
-                            ? "bg-cyan-600 text-white font-semibold animate-winner-blink"
-                            : winnerKind === "last"
-                              ? "bg-green-700 text-white font-semibold animate-winner-blink-last"
-                              : "text-gray";
-                        return (
-                          <td
-                            key={ti}
-                            className={`px-0 py-1 sm:px-1.5 sm:py-1.5 text-center transition-colors whitespace-nowrap text-[7px] sm:text-xs ${cellTone}`}
-                          >
-                            <span className="inline-flex flex-col items-center justify-center gap-0.5">
-                              {matched?.times?.[ti] || "—"}
-                              {matched?.doubleStamps?.[ti] && matched?.times?.[ti] ? <StampIcon /> : null}
-                            </span>
-                          </td>
-                        );
-                      })
-                    }
+                      })}
 
-                    <td className="px-0.5 py-1 sm:px-2 sm:py-1.5 text-center font-semibold text-navy whitespace-nowrap text-[7px] sm:text-xs">
-                      {isDoubleTotal
-                        ? (matched?.total || "No Result")
-                        : (matched?.total || "No Result")}
+                    <td className="text-center font-bold text-navy whitespace-nowrap">
+                      {matched?.total || "No Result"}
                     </td>
                   </tr>
                 );

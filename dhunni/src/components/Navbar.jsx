@@ -117,6 +117,14 @@ export default function Navbar() {
               </div>
             )}
           </div>
+
+          <Link
+            to="/tournaments"
+            style={linkStyle}
+            className={`${linkBase} ${pathname === "/tournaments" ? linkActive : ""}`}
+          >
+            Tournaments
+          </Link>
         </nav>
 
         <a

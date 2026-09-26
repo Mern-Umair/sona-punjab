@@ -98,8 +98,9 @@ export default function ClubTournaments({ clubId }) {
     const { data, isLoading } = useGetTournamentsQuery("");
     const tournaments = data?.data || [];
 
+    // No clubId (the /tournaments page) lists every tournament
     const filtered = [...tournaments]
-        .filter(t => t.club?._id === clubId)
+        .filter(t => !clubId || t.club?._id === clubId)
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     const years = [...new Set(filtered.map(t =>
@@ -123,7 +124,7 @@ export default function ClubTournaments({ clubId }) {
     if (filtered.length === 0) {
         return (
             <div className="text-center py-20 text-gray text-sm">
-                No tournaments found for this club.
+                {clubId ? "No tournaments found for this club." : "No tournaments yet."}
             </div>
         );
     }

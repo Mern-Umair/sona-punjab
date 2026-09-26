@@ -53,17 +53,80 @@ html, body, #root {
   background: linear-gradient(to right, #003F72, #0b5a99);
 }
 
-/* Result tables: striped odd rows + full grid borders (sikeryalipigeon.com style) */
+/* Result tables: striped odd rows + full grid borders (sikeryalipigeon.com style).
+   Everything is fluid: font, padding, avatar and pinned-column widths shrink with the screen. */
 .results-table {
-  border-collapse: collapse;
-  border: 1px solid #b8c2d1;
+  --sr-w: clamp(20px, 5.5vw, 40px);
+  --pic-w: clamp(34px, 9.5vw, 70px);
+  border-collapse: separate;
+  border-spacing: 0;
+  border-top: 1px solid #b8c2d1;
+  border-left: 1px solid #b8c2d1;
+  font-size: clamp(9px, 2.5vw, 14px);
 }
 .results-table th,
 .results-table td {
-  border: 1px solid #b8c2d1;
+  border-right: 1px solid #b8c2d1;
+  border-bottom: 1px solid #b8c2d1;
+  padding: clamp(3px, 1vw, 10px) clamp(3px, 0.9vw, 12px);
+  vertical-align: middle;
 }
 .results-table thead th {
   border-color: #2c447a;
+}
+/* Sr, Picture and Name stay pinned while the rest of the table scrolls sideways */
+.results-table .sticky-col {
+  position: sticky;
+  z-index: 2;
+  background-color: inherit;
+}
+.results-table thead .sticky-col {
+  z-index: 3;
+}
+.rt-col-sr {
+  left: 0;
+  width: var(--sr-w);
+  min-width: var(--sr-w);
+}
+.rt-col-pic {
+  left: var(--sr-w);
+  width: var(--pic-w);
+  min-width: var(--pic-w);
+}
+.rt-col-name {
+  left: calc(var(--sr-w) + var(--pic-w));
+  min-width: clamp(70px, 20vw, 160px);
+  max-width: clamp(110px, 30vw, 240px);
+}
+.rt-avatar {
+  width: clamp(22px, 6.5vw, 44px);
+  height: clamp(22px, 6.5vw, 44px);
+  font-size: clamp(8px, 2.4vw, 14px);
+}
+.rt-name {
+  font-size: clamp(9px, 2.6vw, 14px);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.rt-city {
+  font-size: clamp(7px, 2vw, 11px);
+}
+.rt-stamp {
+  font-size: clamp(7px, 2vw, 9px);
+}
+.rt-tab {
+  font-size: clamp(9px, 2.5vw, 14px);
+  padding: clamp(2px, 0.7vw, 6px) clamp(6px, 1.8vw, 20px);
+}
+.rt-title {
+  font-size: clamp(16px, 4.5vw, 30px);
+  padding: clamp(6px, 1.5vw, 20px) 0 clamp(2px, 0.5vw, 6px);
+}
+.rt-subtitle {
+  font-size: clamp(10px, 2.6vw, 14px);
+}
+.rt-info {
+  font-size: clamp(10px, 2.6vw, 14px);
 }
 .results-table tbody tr:nth-child(odd):not(.is-blinking) {
   background-color: #ecf0f5;

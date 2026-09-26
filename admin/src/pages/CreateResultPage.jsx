@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -73,7 +74,6 @@ function convertPmTo24Hour(timeStr, flyTimeStr) {
 
 const PART_MAX = [23, 59, 59];
 const POP_W = 210;
-const POP_H = 96;
 
 function CheckIcon() {
     return (
@@ -121,27 +121,27 @@ function TimeInput({
     const ref2 = useRef(null);
     const refs = [ref0, ref1, ref2];
     const boxRef = useRef(null);
+    const anchorRef = useRef(null);
     const [pos, setPos] = useState(null);
 
     // Position relative to the cell once mounted, then focus the first box.
     const setBox = useCallback((node) => {
         boxRef.current = node;
         if (!node) return;
-        const cell = node.parentElement;
+        const cell = anchorRef.current;
         if (cell) {
             const r = cell.getBoundingClientRect();
-            // Keep the popover inside the table's scroll box (and the viewport) so it
-            // never hangs off the right edge of the table on phones.
+            // Page coordinates (not fixed): the popover scrolls with the page, so when the
+            // phone keyboard opens the browser can scroll it into view instead of hiding it.
+            // Clamped inside the table's scroll box so it never hangs off the table edge.
             const wrap = cell.closest(".overflow-x-auto");
             const w = wrap ? wrap.getBoundingClientRect() : { left: 0, right: window.innerWidth };
             const minLeft = Math.max(4, w.left + 4);
             const maxLeft = Math.min(window.innerWidth, w.right) - POP_W - 4;
-            let top = r.bottom + 2;
             let left = r.left;
-            if (top + POP_H > window.innerHeight - 4) top = Math.max(4, r.top - POP_H - 2);
             if (left > maxLeft) left = Math.max(minLeft, maxLeft);
             if (left < minLeft) left = minLeft;
-            setPos({ top, left });
+            setPos({ top: r.bottom + window.scrollY + 2, left: left + window.scrollX });
         }
         ref0.current?.focus();
         ref0.current?.select();
@@ -242,18 +242,20 @@ function TimeInput({
         `w-10 h-9 text-center text-sm font-bold tabular-nums rounded border outline-none
          ${partInvalid(i) ? "border-red-400 bg-red-50 text-red-700" : "border-slate-300 focus:border-[#0ea5e9] text-[#122654]"}`;
 
-    return (
+    const popover = (
         <div
             ref={setBox}
             onClick={(e) => e.stopPropagation()}
-            style={
-                pos
-                    ? { position: "fixed", top: pos.top, left: pos.left, width: POP_W }
-                    : { position: "absolute", top: "100%", left: 0, width: POP_W }
-            }
-            className="z-50 bg-white border-2 border-[#0ea5e9] rounded-lg p-2 shadow-lg text-left"
+            style={{
+                position: "absolute",
+                top: pos ? pos.top : -9999,
+                left: pos ? pos.left : -9999,
+                width: POP_W,
+                zIndex: 1000,
+            }}
+            className="bg-white border-2 border-[#0ea5e9] rounded-lg p-2 shadow-lg text-left"
         >
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-1">
                 <input ref={ref0} type="text" inputMode="numeric" autoComplete="off" placeholder="00" value={parts[0]}
                     onChange={(e) => setPart(0, e.target.value)} onBlur={() => blurPart(0)}
                     onFocus={(e) => e.target.select()} onKeyDown={(e) => handleKey(0, e)} className={boxClass(0)} />
@@ -265,37 +267,43 @@ function TimeInput({
                 <input ref={ref2} type="text" inputMode="numeric" autoComplete="off" placeholder="00" value={parts[2]}
                     onChange={(e) => setPart(2, e.target.value)} onBlur={() => blurPart(2)}
                     onFocus={(e) => e.target.select()} onKeyDown={(e) => handleKey(2, e)} className={boxClass(2)} />
-
-                <button
-                    type="button"
-                    title="Save"
-                    onClick={onSave}
-                    disabled={saving || !valid}
-                    className="ml-auto w-8 h-8 rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-40 flex items-center justify-center"
-                >
-                    <CheckIcon />
-                </button>
-                <button
-                    type="button"
-                    title="Close"
-                    onClick={onCancel}
-                    className="w-8 h-8 rounded bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center"
-                >
-                    <CrossIcon />
-                </button>
             </div>
 
-            {showDoubleStamp && (
-                <label className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-700 cursor-pointer select-none">
-                    <input
-                        type="checkbox"
-                        checked={!!doubleStamp}
-                        onChange={(e) => onDoubleStampChange?.(e.target.checked)}
-                        className="w-4 h-4 accent-[#0ea5e9]"
-                    />
-                    Double Stamp
-                </label>
-            )}
+            {/* Second row: Double Stamp on the left, tick and cross far apart on the right */}
+            <div className="flex items-center justify-between gap-2 mt-2">
+                {showDoubleStamp ? (
+                    <label className="flex items-center gap-1.5 text-[11px] text-slate-700 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={!!doubleStamp}
+                            onChange={(e) => onDoubleStampChange?.(e.target.checked)}
+                            className="w-4 h-4 accent-[#0ea5e9]"
+                        />
+                        Double Stamp
+                    </label>
+                ) : (
+                    <span />
+                )}
+                <div className="flex items-center gap-4">
+                    <button
+                        type="button"
+                        title="Save"
+                        onClick={onSave}
+                        disabled={saving || !valid}
+                        className="w-9 h-8 rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-40 flex items-center justify-center"
+                    >
+                        <CheckIcon />
+                    </button>
+                    <button
+                        type="button"
+                        title="Close"
+                        onClick={onCancel}
+                        className="w-9 h-8 rounded bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center"
+                    >
+                        <CrossIcon />
+                    </button>
+                </div>
+            </div>
 
             {!valid ? (
                 <p className="text-[10px] text-red-600 mt-1">Invalid: HH 00-23, MM/SS 00-59</p>
@@ -303,6 +311,15 @@ function TimeInput({
                 <p className="text-[10px] text-amber-700 mt-1">Will be saved as {finalTime} (PM)</p>
             ) : null}
         </div>
+    );
+
+    // Invisible anchor stays inside the cell; the popover itself is portaled to <body>
+    // so the table's scroll box can never clip it.
+    return (
+        <>
+            <span ref={anchorRef} className="absolute inset-0 pointer-events-none" aria-hidden="true" />
+            {createPortal(popover, document.body)}
+        </>
     );
 }
 
@@ -485,8 +502,8 @@ export default function CreateResultPage() {
                     <table className="results-table w-full" style={{ fontSize: "clamp(9px, 2.2vw, 14px)" }}>
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50">
-                                <th className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Sr#</th>
-                                <th className="text-left text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Owner</th>
+                                <th className="sticky-col col-sr text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Sr#</th>
+                                <th className="sticky-col col-owner text-left text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Owner</th>
                                 <th className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Fly Time</th>
                                 {Array.from({ length: pigeons }).map((_, i) => (
                                     <th key={i} className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
@@ -514,8 +531,8 @@ export default function CreateResultPage() {
                                     const draft = getOwnerDraft(owner._id);
                                     return (
                                         <tr key={owner._id}>
-                                            <td className="text-center text-slate-400" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>{i + 1}</td>
-                                            <td className="whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
+                                            <td className="sticky-col col-sr text-center text-slate-400" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>{i + 1}</td>
+                                            <td className="sticky-col col-owner whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
                                                 {/* w-max: the cell's min width must include avatar + full name, so the name never spills into the next column */}
                                                 <div className="flex items-center gap-2 w-max">
                                                     {owner.imageUrl ? (

@@ -38,6 +38,17 @@ const App = () => {
         </div>
       } />
       <Route path="/club/:clubId" element={<ClubPage />} />
+      <Route path="/tournaments" element={
+        <div className="bg-light min-h-screen flex flex-col overflow-x-hidden">
+          <Navbar />
+          <HeroBanner />
+          <div className="flex-1 flex flex-col">
+            <Headline />
+            <ClubTournaments />
+          </div>
+          <Footer />
+        </div>
+      } />
       <Route path="/results/:id" element={
         <div className="bg-light min-h-screen flex flex-col overflow-x-hidden">
           <Navbar />

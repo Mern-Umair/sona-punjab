@@ -30,10 +30,21 @@ html, body, #root {
   border-bottom: 1px solid #cbd5e1;
 }
 /* Sr# and Owner columns stay visible while the table scrolls sideways on phones */
+.results-table {
+  --sr-w: clamp(22px, 6vw, 40px);
+}
 .results-table .sticky-col {
   position: sticky;
   z-index: 2;
   background-color: inherit;
+}
+.results-table .col-sr {
+  left: 0;
+  width: var(--sr-w);
+  min-width: var(--sr-w);
+}
+.results-table .col-owner {
+  left: var(--sr-w);
 }
 .results-table thead .sticky-col {
   z-index: 3;
