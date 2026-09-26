@@ -482,23 +482,23 @@ export default function CreateResultPage() {
                     })}
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="results-table w-full text-xs sm:text-sm">
+                    <table className="results-table w-full" style={{ fontSize: "clamp(9px, 2.2vw, 14px)" }}>
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50">
-                                <th className="sticky-col left-0 px-2 py-3 text-center text-slate-500 font-medium whitespace-nowrap w-9 min-w-[36px]">Sr#</th>
-                                <th className="sticky-col left-9 px-3 py-3 text-left text-slate-500 font-medium whitespace-nowrap">Owner</th>
-                                <th className="px-3 py-3 text-center text-slate-500 font-medium whitespace-nowrap">Fly Time</th>
+                                <th className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Sr#</th>
+                                <th className="text-left text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Owner</th>
+                                <th className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Fly Time</th>
                                 {Array.from({ length: pigeons }).map((_, i) => (
-                                    <th key={i} className="px-3 py-3 text-center text-slate-500 font-medium whitespace-nowrap">
+                                    <th key={i} className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
                                         {i + 1}
                                     </th>
                                 ))}
                                 {Array.from({ length: helperPigeons }).map((_, i) => (
-                                    <th key={`h${i}`} className="px-3 py-3 text-center text-slate-500 font-medium whitespace-nowrap">
+                                    <th key={`h${i}`} className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
                                         {pigeons + i + 1}
                                     </th>
                                 ))}
-                                <th className="px-3 py-3 text-center text-slate-500 font-medium whitespace-nowrap">Result</th>
+                                <th className="text-center text-slate-500 font-medium whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>Result</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -514,8 +514,8 @@ export default function CreateResultPage() {
                                     const draft = getOwnerDraft(owner._id);
                                     return (
                                         <tr key={owner._id}>
-                                            <td className="sticky-col left-0 px-2 py-3 text-center text-slate-400">{i + 1}</td>
-                                            <td className="sticky-col left-9 px-3 py-3 whitespace-nowrap">
+                                            <td className="text-center text-slate-400" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>{i + 1}</td>
+                                            <td className="whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
                                                 {/* w-max: the cell's min width must include avatar + full name, so the name never spills into the next column */}
                                                 <div className="flex items-center gap-2 w-max">
                                                     {owner.imageUrl ? (
@@ -531,7 +531,8 @@ export default function CreateResultPage() {
 
                                             <td
                                                 onClick={() => openCell(owner._id, "startTime")}
-                                                className="px-2 py-3 text-center cursor-pointer hover:bg-slate-50 relative whitespace-nowrap"
+                                                className="text-center cursor-pointer hover:bg-slate-50 relative whitespace-nowrap"
+                                                style={{ padding: "clamp(4px, 1.2vw, 12px)" }}
                                             >
                                                 {draft.startTime || "—"}
                                                 {editingCell?.ownerId === owner._id && editingCell?.field === "startTime" && (
@@ -549,7 +550,8 @@ export default function CreateResultPage() {
                                                 <td
                                                     key={idx}
                                                     onClick={() => openCell(owner._id, "times", idx)}
-                                                    className="px-2 py-3 text-center cursor-pointer hover:bg-slate-50 relative whitespace-nowrap"
+                                                    className="text-center cursor-pointer hover:bg-slate-50 relative whitespace-nowrap"
+                                                    style={{ padding: "clamp(4px, 1.2vw, 12px)" }}
                                                 >
                                                     <span className="inline-flex flex-col items-center justify-center gap-0.5">
                                                         {draft.times[idx] || "—"}
@@ -579,7 +581,7 @@ export default function CreateResultPage() {
                                                 </td>
                                             ))}
 
-                                            <td className="px-3 py-3 text-center font-bold text-[#122654] whitespace-nowrap">
+                                            <td className="text-center font-bold text-[#122654] whitespace-nowrap" style={{ padding: "clamp(4px, 1.2vw, 12px)" }}>
                                                 {existing?.total || "00:00:00"}
                                             </td>
                                         </tr>
