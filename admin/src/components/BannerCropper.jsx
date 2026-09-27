@@ -1,10 +1,21 @@
 import { useRef, useState } from "react";
 
-import { BANNER_W, BANNER_H, MAX_ZOOM, clamp, coverage, clampCenter } from "../utils/bannerCrop";
+import {
+  BANNER_W,
+  BANNER_H,
+  MAX_ZOOM,
+  FILL_COLOR,
+  DESKTOP_VISIBLE,
+  clamp,
+  minZoom,
+  coverage,
+  clampCenter,
+} from "../utils/bannerCrop";
 
 /**
  * Banner frame with the picked image inside: drag to move it, zoom with the slider,
  * the mouse wheel or a two-finger pinch. What is inside the frame is what gets uploaded.
+ * Zooming all the way out shows the whole picture; the empty sides get a blurred copy of it.
  * `crop` = { zoom, center: { x, y } } (centre of the frame as a fraction of the image).
  */
 export default function BannerCropper({ src, crop, onChange, imageRef }) {
@@ -14,6 +25,7 @@ export default function BannerCropper({ src, crop, onChange, imageRef }) {
   const [imageRatio, setImageRatio] = useState(null);
   const [dragging, setDragging] = useState(false);
 
+  const lowestZoom = imageRatio ? minZoom(imageRatio) : 1;
   const cover = imageRatio ? coverage(imageRatio, crop.zoom) : null;
   const center = cover ? clampCenter(crop.center, cover) : crop.center;
 
@@ -22,7 +34,7 @@ export default function BannerCropper({ src, crop, onChange, imageRef }) {
     if (!imageRatio) return;
     onChange((prev) => {
       const next = fn(prev);
-      const zoom = clamp(next.zoom, 1, MAX_ZOOM);
+      const zoom = clamp(next.zoom, lowestZoom, MAX_ZOOM);
       return { zoom, center: clampCenter(next.center, coverage(imageRatio, zoom)) };
     });
   };
@@ -84,11 +96,19 @@ export default function BannerCropper({ src, crop, onChange, imageRef }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onWheel={onWheel}
-        className={`relative w-full overflow-hidden rounded-xl border-2 border-[#122654] bg-slate-100 select-none ${
+        className={`relative w-full overflow-hidden rounded-xl border-2 border-[#122654] select-none ${
           dragging ? "cursor-grabbing" : "cursor-grab"
         }`}
-        style={{ aspectRatio: `${BANNER_W} / ${BANNER_H}`, touchAction: "none" }}
+        style={{ aspectRatio: `${BANNER_W} / ${BANNER_H}`, touchAction: "none", backgroundColor: FILL_COLOR }}
       >
+        {/* Blurred copy behind: only visible when the picture is zoomed out */}
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: "blur(14px) brightness(0.6)", transform: "scale(1.1)" }}
+        />
         <img
           ref={imageRef}
           src={src}
@@ -107,10 +127,19 @@ export default function BannerCropper({ src, crop, onChange, imageRef }) {
               : { visibility: "hidden" }
           }
         />
+        {/* Computers trim the top and bottom: between the two lines is what they show */}
+        {[(1 - DESKTOP_VISIBLE) / 2, (1 + DESKTOP_VISIBLE) / 2].map((at) => (
+          <div
+            key={at}
+            className="absolute left-0 right-0 border-t border-dashed border-white/80 pointer-events-none"
+            style={{ top: `${at * 100}%` }}
+          />
+        ))}
       </div>
 
       <p className="text-xs text-slate-500 text-center mt-2">
-        Drag the picture to move it. The part inside the frame is what shows on the site.
+        Drag the picture to move it. Phones show the whole frame, computers show the part
+        between the two dotted lines.
       </p>
 
       <div className="flex items-center gap-3 mt-3">
@@ -124,7 +153,7 @@ export default function BannerCropper({ src, crop, onChange, imageRef }) {
         </button>
         <input
           type="range"
-          min={1}
+          min={lowestZoom}
           max={MAX_ZOOM}
           step={0.01}
           value={crop.zoom}
