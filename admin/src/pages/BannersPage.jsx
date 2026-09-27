@@ -48,16 +48,16 @@ function AddBannerModal({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-[200] flex items-center justify-center px-3 py-4">
-      <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl max-h-full overflow-y-auto">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-200">
-          <h3 className="text-slate-800 font-bold text-lg">Create Banner</h3>
+      <div className="bg-white rounded-xl w-full max-w-lg shadow-xl max-h-full overflow-y-auto">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-slate-200">
+          <h3 className="text-slate-800 font-bold text-base">Create Banner</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
         </div>
-        <div className="p-4 sm:p-6">
+        <div className="px-4 sm:px-5 py-4">
           {preview ? (
             <>
               <BannerCropper src={preview} crop={crop} onChange={setCrop} imageRef={imageRef} />
-              <label className="inline-block mt-4 text-sm font-semibold text-[#0ea5e9] cursor-pointer hover:underline">
+              <label className="inline-block mt-3 text-xs font-semibold text-[#0ea5e9] cursor-pointer hover:underline">
                 Choose another image
                 <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
               </label>
@@ -72,7 +72,7 @@ function AddBannerModal({ onClose }) {
             </label>
           )}
         </div>
-        <div className="px-4 sm:px-6 py-4 border-t border-slate-100 flex justify-end">
+        <div className="px-4 sm:px-5 py-3 border-t border-slate-100 flex justify-end">
           <button
             onClick={handleUpload}
             disabled={isLoading}

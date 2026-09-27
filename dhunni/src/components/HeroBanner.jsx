@@ -31,7 +31,7 @@ export default function HeroBanner() {
             <img
               src={banner.imageUrl}
               alt="Sona Punjab Banner"
-              className="w-full h-auto block md:h-[400px] md:object-cover md:w-full"
+              className="w-full block object-cover aspect-[1920/720] md:aspect-auto md:h-[400px]"
             />
           </SwiperSlide>
         ))}
