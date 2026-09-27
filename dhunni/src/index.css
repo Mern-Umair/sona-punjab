@@ -102,9 +102,22 @@ html, body, #root {
 .rt-stamp {
   font-size: clamp(7px, 2vw, 9px);
 }
-.rt-tab {
+/* Date tabs: always ONE row; FitRow shrinks the font and everything here follows in em */
+.fit-row {
   font-size: clamp(9px, 2.5vw, 14px);
-  padding: clamp(2px, 0.7vw, 6px) clamp(6px, 1.8vw, 20px);
+  gap: 0.45em;
+}
+.rt-tab {
+  font-size: 1em;
+  padding: 0.3em 0.8em;
+  border-width: clamp(1px, 0.3vw, 2px);
+}
+.fit-short,
+.is-compact .fit-full {
+  display: none;
+}
+.is-compact .fit-short {
+  display: inline;
 }
 .rt-title {
   font-size: clamp(16px, 4.5vw, 30px);
@@ -135,20 +148,10 @@ html, body, #root {
   background-color: #d1ecf4;
 }
 
-/* First winner pigeon cell */
-@keyframes winner-blink {
-  0%, 100% { opacity: 1; background-color: #0891b2; }
-  50% { opacity: 0.55; background-color: #22d3ee; }
-}
-
-.animate-winner-blink {
-  animation: winner-blink 2.5s ease-in-out infinite;
-}
-
-/* Last winner pigeon cell (distinct colour from first winner) */
+/* Last winner pigeon cell: blinks for a few minutes after a new time is added */
 @keyframes winner-blink-last {
-  0%, 100% { opacity: 1; background-color: #15803d; }
-  50% { opacity: 0.6; background-color: #4ade80; }
+  0%, 100% { opacity: 1; background-color: #16a34a; }
+  50% { opacity: 0.6; background-color: #86efac; }
 }
 
 .animate-winner-blink-last {

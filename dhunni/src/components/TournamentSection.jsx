@@ -6,11 +6,19 @@ import {
   useGetTournamentByDayQuery,
   useGetTournamentTotalQuery,
 } from "../../redux/api/tournamentApi";
+import FitRow, { FitDate } from "./FitRow";
+
+// The last winner cell keeps blinking this long after a pigeon time was added
+const LAST_WINNER_BLINK_MS = 5 * 60 * 1000;
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+}
+
+function formatShortDate(dateStr) {
+  return formatDate(dateStr).slice(0, 5);
 }
 
 function timeToSeconds(t) {
@@ -25,7 +33,7 @@ function StampIcon() {
   return (
     <span
       title="Double Stamp"
-      className="rt-stamp inline-block rounded px-1 py-px font-semibold leading-none bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap"
+      className="rt-stamp inline-block rounded px-1 py-px font-semibold leading-none bg-sky-100 text-sky-700 border border-sky-300 whitespace-nowrap"
     >
       D
     </span>
@@ -43,7 +51,7 @@ function TournamentBlock({ tournament }) {
       ? new Date(dates[activeTab]).toISOString().split("T")[0]
       : null;
 
-  const { data: dayData, isLoading: dayLoading } = useGetTournamentByDayQuery(
+  const { data: dayData, isLoading: dayLoading, fulfilledTimeStamp: dayFetchedAt } = useGetTournamentByDayQuery(
     { id: tournament._id, date: selectedDate },
     { skip: !selectedDate }
   );
@@ -184,6 +192,25 @@ function TournamentBlock({ tournament }) {
     };
   }, []);
 
+  // --- Last winner blinker: on for 5 minutes after the latest pigeon time was added.
+  // A newer time restarts it (on the new last winner). Uses the server's clock.
+  const lastTimeAt = dayStats.lastTimeAt || null;
+  const serverTime = dayData?.data?.serverTime || null;
+  const blinkKey = lastTimeAt ? `${tournament._id}:${selectedDate}:${lastTimeAt}` : null;
+  const [expiredBlinkKey, setExpiredBlinkKey] = useState(null);
+
+  useEffect(() => {
+    if (!blinkKey) return;
+    const fetchedAt = dayFetchedAt || Date.now();
+    const serverNow = serverTime ? new Date(serverTime).getTime() : fetchedAt;
+    const ageAtFetch = serverNow - new Date(lastTimeAt).getTime();
+    const left = LAST_WINNER_BLINK_MS - ageAtFetch - (Date.now() - fetchedAt);
+    const timer = setTimeout(() => setExpiredBlinkKey(blinkKey), Math.max(0, left));
+    return () => clearTimeout(timer);
+  }, [blinkKey, lastTimeAt, serverTime, dayFetchedAt]);
+
+  const lastWinnerBlinking = !!blinkKey && expiredBlinkKey !== blinkKey;
+
   const isDay = !isTotal && !isDoubleTotal;
   const lofts = tournament.lofts || tournament.owners?.length || 0;
   const colCount = 5 + (isDay ? pigeons : dates.length);
@@ -198,8 +225,10 @@ function TournamentBlock({ tournament }) {
   };
 
   const tabClass = (active) =>
-    `rt-tab font-sans font-medium rounded border-2 border-navy transition-colors whitespace-nowrap ${
-      active ? "bg-navy text-white font-bold" : "bg-white text-navy hover:bg-navypale"
+    `rt-tab font-sans font-medium rounded transition-colors whitespace-nowrap ${
+      active
+        ? "border-navy bg-navy text-white font-bold"
+        : "border-sky-300 bg-sky-100 text-navy hover:bg-sky-200"
     }`;
 
   return (
@@ -213,10 +242,11 @@ function TournamentBlock({ tournament }) {
         </p>
       )}
 
-      <div className="flex justify-center items-center gap-1 sm:gap-2 flex-wrap px-2 sm:px-4 pb-2 sm:pb-4">
+      {/* Dates, Total and Double Stamp Total: always one row, shrinks to fit the screen */}
+      <FitRow className="px-2 sm:px-4 pb-2 sm:pb-4">
         {dates.map((date, i) => (
           <button key={i} onClick={() => setActiveTab(i)} className={tabClass(activeTab === i)}>
-            {formatDate(date)}
+            <FitDate full={formatDate(date)} short={formatShortDate(date)} />
           </button>
         ))}
         <button onClick={() => setActiveTab(dates.length)} className={tabClass(isTotal)}>
@@ -225,7 +255,7 @@ function TournamentBlock({ tournament }) {
         <button onClick={() => setActiveTab(dates.length + 1)} className={tabClass(isDoubleTotal)}>
           🏷️ Double Stamp Total
         </button>
-      </div>
+      </FitRow>
 
       {/* Info box: full wording everywhere; each item stays on ONE line (font shrinks on phones) */}
       <div className="rt-info mx-2 sm:mx-4 mb-2 sm:mb-3 bg-white border border-gray border-l-4 border-l-cyan-500 rounded shadow-sm px-2 py-1 sm:px-4 sm:py-3 text-dark overflow-hidden">
@@ -237,13 +267,13 @@ function TournamentBlock({ tournament }) {
           {isDay && (
             <>
               <p className="whitespace-nowrap">
-                <span className="inline-block bg-cyan-600 text-white font-semibold px-1.5 py-0.5 rounded">
+                <span className="inline-block bg-cyan-500 text-white font-semibold px-1.5 py-0.5 rounded">
                   First winner pigeon time:{" "}
                   {firstWinnerPigeon ? `${firstWinnerPigeon.time}, ${firstWinnerPigeon.ownerName}` : "No results yet"}
                 </span>
               </p>
               <p className="whitespace-nowrap">
-                <span className="inline-block bg-green-700 text-white font-semibold px-1.5 py-0.5 rounded">
+                <span className="inline-block bg-green-600 text-white font-semibold px-1.5 py-0.5 rounded">
                   Last winner pigeon time:{" "}
                   {lastWinnerPigeon ? `${lastWinnerPigeon.time}, ${lastWinnerPigeon.ownerName}` : "No results yet"}
                 </span>
@@ -318,9 +348,9 @@ function TournamentBlock({ tournament }) {
                         const winnerKind = winnerKindForCell(owner._id, ti);
                         const tone =
                           winnerKind === "first"
-                            ? "bg-cyan-600 text-white font-semibold animate-winner-blink"
+                            ? "bg-cyan-500 text-white font-semibold"
                             : winnerKind === "last"
-                              ? "bg-green-700 text-white font-semibold animate-winner-blink-last"
+                              ? `bg-green-600 text-white font-semibold ${lastWinnerBlinking ? "animate-winner-blink-last" : ""}`
                               : "text-dark font-semibold";
                         return (
                           <td key={ti} className={`text-center whitespace-nowrap transition-colors ${tone}`}>

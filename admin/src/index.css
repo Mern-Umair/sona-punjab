@@ -41,3 +41,20 @@ html, body, #root {
 .results-table tbody tr:hover {
   background-color: #d1ecf4;
 }
+/* Date tabs: always ONE row; FitRow shrinks the font and everything here follows in em */
+.fit-row {
+  font-size: clamp(9px, 2.5vw, 12px);
+  gap: 0.6em;
+}
+.fit-tab {
+  font-size: 1em;
+  padding: 0.45em 1.2em;
+  border-width: clamp(1px, 0.3vw, 2px);
+}
+.fit-short,
+.is-compact .fit-full {
+  display: none;
+}
+.is-compact .fit-short {
+  display: inline;
+}

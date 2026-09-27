@@ -7,6 +7,7 @@ import {
     useGetTournamentByDayQuery,
     useSaveOwnerDayResultMutation,
 } from "../../redux/api/tournamentApi";
+import FitRow, { FitDate } from "../components/FitRow";
 
 function formatDate(dateStr) {
     const d = new Date(dateStr);
@@ -480,24 +481,25 @@ export default function CreateResultPage() {
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 p-4">
-                <div className="flex flex-wrap gap-2 mb-4">
+                {/* Dates: always one row, shrinks to fit the screen */}
+                <FitRow className="mb-4 !justify-start">
                     {tournament?.dates?.map((d, i) => {
                         const iso = new Date(d).toISOString().split("T")[0];
                         return (
                             <button
                                 key={i}
                                 onClick={() => setActiveDate(iso)}
-                                className={`px-4 py-1.5 text-xs font-semibold rounded border-2 transition-colors
+                                className={`fit-tab font-semibold rounded transition-colors whitespace-nowrap
                   ${activeDate === iso
                                         ? "border-[#122654] bg-[#122654] text-white"
-                                        : "border-[#122654] text-[#122654] bg-white hover:bg-slate-50"
+                                        : "border-sky-300 text-[#122654] bg-sky-100 hover:bg-sky-200"
                                     }`}
                             >
-                                {formatDate(d)}
+                                <FitDate full={formatDate(d)} short={formatDate(d).slice(0, 5)} />
                             </button>
                         );
                     })}
-                </div>
+                </FitRow>
                 <div className="overflow-x-auto">
                     <table className="results-table w-full" style={{ fontSize: "clamp(9px, 2.2vw, 14px)" }}>
                         <thead>
@@ -573,7 +575,7 @@ export default function CreateResultPage() {
                                                     <span className="inline-flex flex-col items-center justify-center gap-0.5">
                                                         {draft.times[idx] || "—"}
                                                         {draft.doubleStamps?.[idx] && draft.times[idx] ? (
-                                                            <span title="Double Stamp" className="inline-block rounded px-1 py-px text-[9px] font-semibold leading-none bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap">
+                                                            <span title="Double Stamp" className="inline-block rounded px-1 py-px text-[9px] font-semibold leading-none bg-sky-100 text-sky-700 border border-sky-300 whitespace-nowrap">
                                                                 D
                                                             </span>
                                                         ) : null}

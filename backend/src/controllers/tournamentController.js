@@ -224,6 +224,7 @@ export const getTournamentByDay = async (req, res) => {
       pigeons: tournament.pigeons,
     },
     day,
+    serverTime: new Date().toISOString(),
   });
 };
 
@@ -394,6 +395,7 @@ export const addDayResults = async (req, res) => {
   if (dayIndex === -1) return errorResponse(res, "Date not found", 404);
 
   tournament.tournamentDays[dayIndex].results = results || [];
+  tournament.tournamentDays[dayIndex].lastTimeAt = new Date();
   tournament.tournamentDays[dayIndex].landed = landed || 0;
   tournament.tournamentDays[dayIndex].remaining = remaining || 0;
   tournament.tournamentDays[dayIndex].winnerTime = winnerTime || "";
@@ -478,6 +480,12 @@ export const saveOwnerDayResult = async (req, res) => {
   const day = tournament.tournamentDays[dayIndex];
   const existingIdx = day.results.findIndex(r => String(r.owner) === String(ownerId));
   const isDoubleStamp = normalizedStamps.some(Boolean);
+
+  // A pigeon time was added or changed: restarts the last winner blinker on the site
+  const previousTimes = existingIdx > -1 ? day.results[existingIdx].times || [] : [];
+  if (convertedTimes.some((t, i) => t && t !== previousTimes[i])) {
+    day.lastTimeAt = new Date();
+  }
 
   if (existingIdx > -1) {
     day.results[existingIdx].times = convertedTimes;
