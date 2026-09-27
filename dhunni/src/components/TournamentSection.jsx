@@ -131,21 +131,11 @@ function TournamentBlock({ tournament }) {
     return best;
   })();
 
-  /** Returns "first", "last" or null for a pigeon cell. */
-  const winnerKindForCell = (ownerId, colIndex) => {
-    const id = String(ownerId);
-    const isFirst =
-      firstWinnerPigeon &&
-      firstWinnerPigeon.ownerId === id &&
-      firstWinnerPigeon.colIndex === colIndex;
-    const isLast =
-      lastWinnerPigeon &&
-      lastWinnerPigeon.ownerId === id &&
-      lastWinnerPigeon.colIndex === colIndex;
-    if (isFirst) return "first";
-    if (isLast) return "last";
-    return null;
-  };
+  /** Only the last winner's cell is highlighted in the table (the first winner shows in the info box only). */
+  const isLastWinnerCell = (ownerId, colIndex) =>
+    !!lastWinnerPigeon &&
+    lastWinnerPigeon.ownerId === String(ownerId) &&
+    lastWinnerPigeon.colIndex === colIndex;
 
   // --- Blink-on-new-record logic ---
   const [blinkingRows, setBlinkingRows] = useState({});
@@ -341,13 +331,9 @@ function TournamentBlock({ tournament }) {
 
                     {isDay
                       ? Array.from({ length: pigeons }).map((_, ti) => {
-                        const winnerKind = winnerKindForCell(owner._id, ti);
-                        const tone =
-                          winnerKind === "first"
-                            ? "bg-cyan-500 text-white font-semibold"
-                            : winnerKind === "last"
-                              ? `bg-green-600 text-white font-semibold ${lastWinnerBlinking ? "animate-winner-blink-last" : ""}`
-                              : "text-dark font-semibold";
+                        const tone = isLastWinnerCell(owner._id, ti)
+                          ? `bg-green-600 text-white font-semibold ${lastWinnerBlinking ? "animate-winner-blink-last" : ""}`
+                          : "text-dark font-semibold";
                         return (
                           <td key={ti} className={`text-center whitespace-nowrap transition-colors ${tone}`}>
                             <span className="inline-flex flex-col items-center justify-center gap-0.5">
