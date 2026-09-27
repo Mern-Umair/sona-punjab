@@ -75,6 +75,12 @@ function convertPmTo24Hour(timeStr, flyTimeStr) {
 
 const PART_MAX = [23, 59, 59];
 const POP_W = 210;
+const PIN_W = 290;
+
+/** Phones and tablets: an on-screen keyboard will cover the lower part of the screen. */
+function isTouchScreen() {
+    return window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+}
 
 function CheckIcon() {
     return (
@@ -92,10 +98,11 @@ function CrossIcon() {
 }
 
 /**
- * Compact time popover under the clicked cell.
- * Three boxes (HH / MM / SS) with auto-advance, a tick to save, a cross to close.
- * Tapping anywhere outside closes it. Positioned fixed and clamped to the
- * viewport so it is never clipped by the table scroll box on phones.
+ * Time popover. Three boxes (HH / MM / SS) with auto-advance, a tick to save, a cross to close.
+ * Tapping anywhere outside closes it.
+ * Desktop: small, right under the clicked cell.
+ * Phones: a larger panel pinned to the top of the VISIBLE screen area, so the keyboard can
+ * never cover it. It follows pinch-zoom and scrolling and keeps the same on-screen size.
  */
 function TimeInput({
     value,
@@ -107,6 +114,7 @@ function TimeInput({
     doubleStamp = false,
     onDoubleStampChange,
     flyTime = "",
+    label = "",
 }) {
     const [h = "", m = "", sec = ""] = String(value || "").split(":");
     const parts = [h, m, sec];
@@ -124,11 +132,46 @@ function TimeInput({
     const boxRef = useRef(null);
     const anchorRef = useRef(null);
     const [pos, setPos] = useState(null);
+    const [pinned] = useState(isTouchScreen);
 
-    // Position relative to the cell once mounted, then focus the first box.
+    // Phones: top centre of the visible area (visual viewport = what is left above the keyboard
+    // and inside the current zoom). Scaled back by the zoom level so it never grows off screen.
+    const placePinned = useCallback(() => {
+        const vv = window.visualViewport;
+        const visibleW = vv ? vv.width : window.innerWidth;
+        const zoomBack = vv ? 1 / vv.scale : 1;
+        const scale = Math.min(zoomBack, (visibleW - 8) / PIN_W);
+        setPos({
+            top: (vv ? vv.offsetTop : 0) + 8 * scale,
+            left: (vv ? vv.offsetLeft : 0) + (visibleW - PIN_W * scale) / 2,
+            scale,
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!pinned) return;
+        const vv = window.visualViewport;
+        vv?.addEventListener("resize", placePinned);
+        vv?.addEventListener("scroll", placePinned);
+        window.addEventListener("resize", placePinned);
+        return () => {
+            vv?.removeEventListener("resize", placePinned);
+            vv?.removeEventListener("scroll", placePinned);
+            window.removeEventListener("resize", placePinned);
+        };
+    }, [pinned, placePinned]);
+
+    // Position once mounted, then focus the first box.
     const setBox = useCallback((node) => {
         boxRef.current = node;
         if (!node) return;
+        if (pinned) {
+            placePinned();
+            // preventScroll: the panel is already visible, the page must not jump
+            ref0.current?.focus({ preventScroll: true });
+            ref0.current?.select();
+            return;
+        }
         const cell = anchorRef.current;
         if (cell) {
             const r = cell.getBoundingClientRect();
@@ -146,7 +189,7 @@ function TimeInput({
         }
         ref0.current?.focus();
         ref0.current?.select();
-    }, []);
+    }, [pinned, placePinned]);
 
     // Tap / click outside closes the popover
     useEffect(() => {
@@ -164,7 +207,7 @@ function TimeInput({
     const focusPart = (i) => {
         const el = refs[i]?.current;
         if (!el) return;
-        el.focus();
+        el.focus({ preventScroll: pinned });
         el.select();
     };
 
@@ -239,8 +282,9 @@ function TimeInput({
         }
     };
 
+    // Phones: 16px+ text, otherwise iOS zooms the whole page when a box gets focus
     const boxClass = (i) =>
-        `w-10 h-9 text-center text-sm font-bold tabular-nums rounded border outline-none
+        `${pinned ? "w-16 h-12 text-xl" : "w-10 h-9 text-sm"} text-center font-bold tabular-nums rounded border outline-none
          ${partInvalid(i) ? "border-red-400 bg-red-50 text-red-700" : "border-slate-300 focus:border-[#0ea5e9] text-[#122654]"}`;
 
     const popover = (
@@ -248,15 +292,20 @@ function TimeInput({
             ref={setBox}
             onClick={(e) => e.stopPropagation()}
             style={{
-                position: "absolute",
+                position: pinned ? "fixed" : "absolute",
                 top: pos ? pos.top : -9999,
                 left: pos ? pos.left : -9999,
-                width: POP_W,
+                width: pinned ? PIN_W : POP_W,
+                transform: pinned && pos ? `scale(${pos.scale})` : undefined,
+                transformOrigin: "top left",
                 zIndex: 1000,
             }}
-            className="bg-white border-2 border-[#0ea5e9] rounded-lg p-2 shadow-lg text-left"
+            className={`bg-white border-2 border-[#0ea5e9] rounded-lg text-left ${pinned ? "p-3 shadow-2xl" : "p-2 shadow-lg"}`}
         >
-            <div className="flex items-center justify-center gap-1">
+            {pinned && label ? (
+                <p className="text-xs font-semibold text-[#122654] text-center truncate mb-2">{label}</p>
+            ) : null}
+            <div className={`flex items-center justify-center ${pinned ? "gap-2" : "gap-1"}`}>
                 <input ref={ref0} type="text" inputMode="numeric" autoComplete="off" placeholder="00" value={parts[0]}
                     onChange={(e) => setPart(0, e.target.value)} onBlur={() => blurPart(0)}
                     onFocus={(e) => e.target.select()} onKeyDown={(e) => handleKey(0, e)} className={boxClass(0)} />
@@ -271,14 +320,14 @@ function TimeInput({
             </div>
 
             {/* Second row: Double Stamp on the left, tick and cross far apart on the right */}
-            <div className="flex items-center justify-between gap-2 mt-2">
+            <div className={`flex items-center justify-between gap-2 ${pinned ? "mt-3" : "mt-2"}`}>
                 {showDoubleStamp ? (
-                    <label className="flex items-center gap-1.5 text-[11px] text-slate-700 cursor-pointer select-none">
+                    <label className={`flex items-center gap-1.5 text-slate-700 cursor-pointer select-none ${pinned ? "text-sm" : "text-[11px]"}`}>
                         <input
                             type="checkbox"
                             checked={!!doubleStamp}
                             onChange={(e) => onDoubleStampChange?.(e.target.checked)}
-                            className="w-4 h-4 accent-[#0ea5e9]"
+                            className={`accent-[#0ea5e9] ${pinned ? "w-5 h-5" : "w-4 h-4"}`}
                         />
                         Double Stamp
                     </label>
@@ -291,7 +340,7 @@ function TimeInput({
                         title="Save"
                         onClick={onSave}
                         disabled={saving || !valid}
-                        className="w-9 h-8 rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-40 flex items-center justify-center"
+                        className={`${pinned ? "w-12 h-10" : "w-9 h-8"} rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-40 flex items-center justify-center`}
                     >
                         <CheckIcon />
                     </button>
@@ -299,7 +348,7 @@ function TimeInput({
                         type="button"
                         title="Close"
                         onClick={onCancel}
-                        className="w-9 h-8 rounded bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center"
+                        className={`${pinned ? "w-12 h-10" : "w-9 h-8"} rounded bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center`}
                     >
                         <CrossIcon />
                     </button>
@@ -561,6 +610,7 @@ export default function CreateResultPage() {
                                                         onCancel={() => cancelEdit(owner._id)}
                                                         onSave={() => saveFlyTime(owner._id)}
                                                         saving={saving}
+                                                        label={`${owner.name} — Fly Time`}
                                                     />
                                                 )}
                                             </td>
@@ -590,6 +640,7 @@ export default function CreateResultPage() {
                                                                 onCancel={() => cancelEdit(owner._id)}
                                                                 onSave={() => savePigeonTime(owner._id, idx)}
                                                                 saving={saving}
+                                                                label={`${owner.name} — Pigeon ${idx + 1}`}
                                                                 showDoubleStamp
                                                                 doubleStamp={!!draft.doubleStamps?.[idx]}
                                                                 onDoubleStampChange={(checked) =>
