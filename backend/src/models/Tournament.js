@@ -18,7 +18,6 @@ const tournamentDaySchema = new mongoose.Schema({
   remaining:   { type: Number, default: 0 },
   winnerTime:  { type: String, default: "" },
   winnerOwner: { type: mongoose.Schema.Types.ObjectId, ref: "PigeonOwner" },
-  lastTimeAt:  { type: Date, default: null }, // when a pigeon time was last added/changed
 }, { _id: false });
 
 const tournamentSchema = new mongoose.Schema({

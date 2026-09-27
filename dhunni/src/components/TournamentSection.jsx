@@ -8,9 +8,6 @@ import {
 } from "../../redux/api/tournamentApi";
 import FitRow from "./FitRow";
 
-// The last winner cell keeps blinking this long after a pigeon time was added
-const LAST_WINNER_BLINK_MS = 5 * 60 * 1000;
-
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -47,7 +44,7 @@ function TournamentBlock({ tournament }) {
       ? new Date(dates[activeTab]).toISOString().split("T")[0]
       : null;
 
-  const { data: dayData, isLoading: dayLoading, fulfilledTimeStamp: dayFetchedAt } = useGetTournamentByDayQuery(
+  const { data: dayData, isLoading: dayLoading } = useGetTournamentByDayQuery(
     { id: tournament._id, date: selectedDate },
     { skip: !selectedDate }
   );
@@ -131,7 +128,8 @@ function TournamentBlock({ tournament }) {
     return best;
   })();
 
-  /** Only the last winner's cell is highlighted in the table (the first winner shows in the info box only). */
+  /** Only the last winner's cell is highlighted in the table, and it keeps blinking until a
+   *  later time is added (the first winner shows in the info box only). */
   const isLastWinnerCell = (ownerId, colIndex) =>
     !!lastWinnerPigeon &&
     lastWinnerPigeon.ownerId === String(ownerId) &&
@@ -177,25 +175,6 @@ function TournamentBlock({ tournament }) {
       Object.values(blinkTimersRef.current).forEach(clearTimeout);
     };
   }, []);
-
-  // --- Last winner blinker: on for 5 minutes after the latest pigeon time was added.
-  // A newer time restarts it (on the new last winner). Uses the server's clock.
-  const lastTimeAt = dayStats.lastTimeAt || null;
-  const serverTime = dayData?.data?.serverTime || null;
-  const blinkKey = lastTimeAt ? `${tournament._id}:${selectedDate}:${lastTimeAt}` : null;
-  const [expiredBlinkKey, setExpiredBlinkKey] = useState(null);
-
-  useEffect(() => {
-    if (!blinkKey) return;
-    const fetchedAt = dayFetchedAt || Date.now();
-    const serverNow = serverTime ? new Date(serverTime).getTime() : fetchedAt;
-    const ageAtFetch = serverNow - new Date(lastTimeAt).getTime();
-    const left = LAST_WINNER_BLINK_MS - ageAtFetch - (Date.now() - fetchedAt);
-    const timer = setTimeout(() => setExpiredBlinkKey(blinkKey), Math.max(0, left));
-    return () => clearTimeout(timer);
-  }, [blinkKey, lastTimeAt, serverTime, dayFetchedAt]);
-
-  const lastWinnerBlinking = !!blinkKey && expiredBlinkKey !== blinkKey;
 
   const isDay = !isTotal && !isDoubleTotal;
   const lofts = tournament.lofts || tournament.owners?.length || 0;
@@ -332,7 +311,7 @@ function TournamentBlock({ tournament }) {
                     {isDay
                       ? Array.from({ length: pigeons }).map((_, ti) => {
                         const tone = isLastWinnerCell(owner._id, ti)
-                          ? `bg-green-600 text-white font-semibold ${lastWinnerBlinking ? "animate-winner-blink-last" : ""}`
+                          ? "bg-green-600 text-white font-semibold animate-winner-blink-last"
                           : "text-dark font-semibold";
                         return (
                           <td key={ti} className={`text-center whitespace-nowrap transition-colors ${tone}`}>
