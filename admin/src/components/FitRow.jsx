@@ -1,12 +1,9 @@
 import { useLayoutEffect, useRef } from "react";
 
-const READABLE_FONT_PX = 8;
-
 /**
  * Keeps its children on ONE line on every screen: the font shrinks until the row fits
- * (children are sized in em, so padding and gaps shrink with it). If the dates would get
- * smaller than a readable size, they switch to the short form (day-month) first.
- * Children can render both forms with <FitDate full="26-09-2026" short="26-09" />.
+ * (children are sized in em, so padding and gaps shrink with it). When it has to shrink,
+ * the buttons also get tighter padding first so the text stays as large as possible.
  */
 export default function FitRow({ className = "", children }) {
   const outerRef = useRef(null);
@@ -17,27 +14,19 @@ export default function FitRow({ className = "", children }) {
     const inner = innerRef.current;
     if (!outer || !inner) return;
 
-    const shrinkToFit = () => {
+    const fit = () => {
       inner.style.fontSize = "";
+      inner.classList.remove("is-tight");
       const cs = getComputedStyle(outer);
       const available = outer.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      if (available <= 0) return null;
+      if (available <= 0 || inner.offsetWidth <= available) return;
+      inner.classList.add("is-tight");
       // A few passes: borders do not scale with the font, so one pass can be slightly off
       for (let i = 0; i < 4; i++) {
         const needed = inner.offsetWidth;
         if (needed <= available) break;
         const current = parseFloat(getComputedStyle(inner).fontSize);
         inner.style.fontSize = `${Math.floor(current * (available / needed) * 100) / 100}px`;
-      }
-      return parseFloat(getComputedStyle(inner).fontSize);
-    };
-
-    const fit = () => {
-      inner.classList.remove("is-compact");
-      const size = shrinkToFit();
-      if (size !== null && size < READABLE_FONT_PX) {
-        inner.classList.add("is-compact");
-        shrinkToFit();
       }
     };
 
@@ -53,14 +42,5 @@ export default function FitRow({ className = "", children }) {
         {children}
       </div>
     </div>
-  );
-}
-
-export function FitDate({ full, short }) {
-  return (
-    <>
-      <span className="fit-full">{full}</span>
-      <span className="fit-short">{short}</span>
-    </>
   );
 }

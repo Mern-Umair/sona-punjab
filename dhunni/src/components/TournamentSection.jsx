@@ -6,7 +6,7 @@ import {
   useGetTournamentByDayQuery,
   useGetTournamentTotalQuery,
 } from "../../redux/api/tournamentApi";
-import FitRow, { FitDate } from "./FitRow";
+import FitRow from "./FitRow";
 
 // The last winner cell keeps blinking this long after a pigeon time was added
 const LAST_WINNER_BLINK_MS = 5 * 60 * 1000;
@@ -15,10 +15,6 @@ function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
-}
-
-function formatShortDate(dateStr) {
-  return formatDate(dateStr).slice(0, 5);
 }
 
 function timeToSeconds(t) {
@@ -246,7 +242,7 @@ function TournamentBlock({ tournament }) {
       <FitRow className="px-2 sm:px-4 pb-2 sm:pb-4">
         {dates.map((date, i) => (
           <button key={i} onClick={() => setActiveTab(i)} className={tabClass(activeTab === i)}>
-            <FitDate full={formatDate(date)} short={formatShortDate(date)} />
+            {formatDate(date)}
           </button>
         ))}
         <button onClick={() => setActiveTab(dates.length)} className={tabClass(isTotal)}>

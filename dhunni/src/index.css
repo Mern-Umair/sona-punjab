@@ -112,12 +112,12 @@ html, body, #root {
   padding: 0.3em 0.8em;
   border-width: clamp(1px, 0.3vw, 2px);
 }
-.fit-short,
-.is-compact .fit-full {
-  display: none;
+.fit-row.is-tight {
+  gap: 0.25em;
 }
-.is-compact .fit-short {
-  display: inline;
+.is-tight .rt-tab {
+  padding: 0.35em 0.3em;
+  border-width: 1px;
 }
 .rt-title {
   font-size: clamp(16px, 4.5vw, 30px);

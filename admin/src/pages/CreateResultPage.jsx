@@ -7,7 +7,7 @@ import {
     useGetTournamentByDayQuery,
     useSaveOwnerDayResultMutation,
 } from "../../redux/api/tournamentApi";
-import FitRow, { FitDate } from "../components/FitRow";
+import FitRow from "../components/FitRow";
 
 function formatDate(dateStr) {
     const d = new Date(dateStr);
@@ -495,7 +495,7 @@ export default function CreateResultPage() {
                                         : "border-sky-300 text-[#122654] bg-sky-100 hover:bg-sky-200"
                                     }`}
                             >
-                                <FitDate full={formatDate(d)} short={formatDate(d).slice(0, 5)} />
+                                {formatDate(d)}
                             </button>
                         );
                     })}
