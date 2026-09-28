@@ -14,6 +14,19 @@ function formatDate(dateStr) {
   return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
 }
 
+/** Index of the day to open first: today's date, or the latest day that has already started
+ * (the first day before the tournament begins, the last day once it is over). */
+function currentDayIndex(dates) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  let index = 0;
+  dates.forEach((d, n) => {
+    const day = new Date(d);
+    if (new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime() <= today) index = n;
+  });
+  return index;
+}
+
 function timeToSeconds(t) {
   if (!t) return null;
   const parts = t.split(":").map(Number);
@@ -35,7 +48,7 @@ function StampIcon() {
 
 function TournamentBlock({ tournament }) {
   const dates = tournament.dates || [];
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(() => currentDayIndex(dates));
   const isTotal = activeTab === dates.length;
   const isDoubleTotal = activeTab === dates.length + 1;
 

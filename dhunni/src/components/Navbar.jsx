@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useGetClubsQuery } from "../../redux/api/clubApi";
+import { useGetTournamentsQuery } from "../../redux/api/tournamentApi";
 
 function ChevronIcon({ open }) {
   return (
@@ -18,35 +19,37 @@ function ChevronIcon({ open }) {
 }
 
 const MIN_FONT_PX = 8;
+const SCREEN_MARGIN_PX = 6;
+
+// Fluid sizing: shrinks smoothly as the screen gets narrower
+const linkStyle = {
+  fontSize: "clamp(10px, 2.6vw, 15px)",
+  padding: "clamp(4px, 1.1vw, 8px) clamp(6px, 1.6vw, 16px)",
+};
+const linkBase =
+  "font-sans font-semibold text-white rounded transition-colors whitespace-nowrap hover:bg-white/10";
+const linkActive = "font-bold";
 
 /**
- * Menu bar styled after sikeryalipigeon.com: a full-width blue bar at the very top
- * (the slider sits below it) with plain white links and a "Clubs" dropdown that
- * shows the selected club's name. One single row on every screen size, no hamburger.
- * Sizes shrink with the viewport via clamp(); a long club name additionally shrinks
- * its own font until it fits, so it never collides with "Tournaments".
+ * Menu dropdown whose button shows the selected item's name (or `title` when nothing is
+ * selected). It takes whatever width is left in the bar; a long name shrinks its own font
+ * until it fits, so it never collides with its neighbours.
+ * `items` = [{ key, to, label }]
  */
-export default function Navbar() {
+function NavDropdown({ title, items, emptyText, open, onToggle, onClose }) {
   const { pathname } = useLocation();
-  const { data: clubsData } = useGetClubsQuery();
-  const clubs = clubsData?.data || [];
-
-  const [clubsOpen, setClubsOpen] = useState(false);
-  const [lastPath, setLastPath] = useState(pathname);
   const dropdownRef = useRef(null);
   const labelRef = useRef(null);
+  const menuRef = useRef(null);
 
-  // Close the dropdown on navigation (state adjustment during render, no effect needed)
-  if (pathname !== lastPath) {
-    setLastPath(pathname);
-    setClubsOpen(false);
-  }
+  const selected = items.find((item) => item.to === pathname);
+  const buttonLabel = selected ? selected.label : title;
 
-  // Close the dropdown when clicking/tapping outside of it
+  // Close when clicking/tapping outside of it
   useEffect(() => {
-    if (!clubsOpen) return;
+    if (!open) return;
     const onDown = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setClubsOpen(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) onClose();
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("touchstart", onDown);
@@ -54,15 +57,10 @@ export default function Navbar() {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("touchstart", onDown);
     };
-  }, [clubsOpen]);
+  }, [open, onClose]);
 
-  const isClubActive = pathname.startsWith("/club/");
-  const activeClub = clubs.find((c) => pathname === `/club/${c._id}`);
-  const buttonLabel = activeClub ? activeClub.name : "Clubs";
-
-  // Fit the club name to the space left between "Home" and "Tournaments":
-  // start at the normal size, then shrink the font just enough for the whole
-  // name to fit on one line. Re-runs when the name or the screen size changes.
+  // Fit the name to the space the button got: start at the normal size, then shrink the
+  // font just enough for the whole name to fit on one line.
   useLayoutEffect(() => {
     const el = labelRef.current;
     if (!el) return;
@@ -86,16 +84,109 @@ export default function Navbar() {
     fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
-  }, [buttonLabel, clubs.length]);
+  });
 
-  // Fluid sizing: shrinks smoothly as the screen gets narrower
-  const linkStyle = {
-    fontSize: "clamp(10px, 2.6vw, 15px)",
-    padding: "clamp(4px, 1.1vw, 8px) clamp(6px, 1.6vw, 16px)",
-  };
-  const linkBase =
-    "font-sans font-semibold text-white rounded transition-colors whitespace-nowrap hover:bg-white/10";
-  const linkActive = "font-bold";
+  // The list opens under its button, moved left when it would run off the screen
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!open || !menu) return;
+    menu.style.left = "0px";
+    const overflow = menu.getBoundingClientRect().right - (window.innerWidth - SCREEN_MARGIN_PX);
+    if (overflow > 0) {
+      const room = menu.getBoundingClientRect().left - SCREEN_MARGIN_PX;
+      menu.style.left = `${-Math.min(overflow, Math.max(0, room))}px`;
+    }
+  }, [open, items.length]);
+
+  return (
+    <div ref={dropdownRef} className="relative min-w-0 shrink" style={{ flex: "0 1 auto" }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        style={linkStyle}
+        className={`${linkBase} flex items-center gap-1 w-full min-w-0 ${selected ? linkActive : ""}`}
+      >
+        <span ref={labelRef} className="block min-w-0 overflow-hidden whitespace-nowrap leading-tight">
+          {buttonLabel}
+        </span>
+        <ChevronIcon open={open} />
+      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          className="absolute left-0 top-full mt-1 min-w-[12rem] max-w-[85vw] max-h-[70vh] overflow-y-auto bg-white rounded-md shadow-xl border border-gray py-1 z-50"
+        >
+          {items.length === 0 ? (
+            <p className="px-4 py-2 text-gray text-sm">{emptyText}</p>
+          ) : (
+            items.map((item) => (
+              <Link
+                key={item.key}
+                to={item.to}
+                role="menuitem"
+                style={{ fontSize: "clamp(12px, 3vw, 14px)" }}
+                className={`block px-4 py-2 font-sans transition-colors
+                  ${pathname === item.to
+                    ? "bg-[#003F72] text-white font-semibold"
+                    : "text-dark hover:bg-navypale hover:text-navy"}`}
+              >
+                {item.label}
+              </Link>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Menu bar styled after sikeryalipigeon.com: a full-width blue bar at the very top
+ * (the slider sits below it) with plain white links and two dropdowns, "Clubs" and
+ * "Tournaments", that show the selected item's name. One single row on every screen
+ * size, no hamburger. Sizes shrink with the viewport via clamp().
+ */
+export default function Navbar() {
+  const { pathname } = useLocation();
+  const { data: clubsData } = useGetClubsQuery();
+  const { data: tournamentsData } = useGetTournamentsQuery("");
+
+  const clubItems = (clubsData?.data || []).map((c) => ({
+    key: c._id,
+    to: `/club/${c._id}`,
+    label: c.name,
+  }));
+
+  // Newest first, with the full list on top
+  const tournaments = [...(tournamentsData?.data || [])].sort(
+    (a, b) => new Date(b.startDate || b.createdAt) - new Date(a.startDate || a.createdAt)
+  );
+  const tournamentItems =
+    tournaments.length === 0
+      ? []
+      : [
+          { key: "all", to: "/tournaments", label: "All Tournaments" },
+          ...tournaments.map((t) => ({ key: t._id, to: `/results/${t._id}`, label: t.name })),
+        ];
+
+  // Only one list is open at a time: "clubs", "tournaments" or null
+  const [openMenu, setOpenMenu] = useState(null);
+  const [lastPath, setLastPath] = useState(pathname);
+
+  // Close the lists on navigation (state adjustment during render, no effect needed)
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setOpenMenu(null);
+  }
+
+  const toggle = (name) => setOpenMenu((current) => (current === name ? null : name));
+  const closeClubs = () => setOpenMenu((current) => (current === "clubs" ? null : current));
+  const closeTournaments = () =>
+    setOpenMenu((current) => (current === "tournaments" ? null : current));
 
   return (
     <header className="sticky top-0 z-50 w-full shadow-md nav-gradient">
@@ -111,56 +202,23 @@ export default function Navbar() {
             Home
           </Link>
 
-          {/* The dropdown takes whatever width is left; the name inside shrinks to fit it */}
-          <div ref={dropdownRef} className="relative min-w-0 shrink" style={{ flex: "0 1 auto" }}>
-            <button
-              type="button"
-              onClick={() => setClubsOpen((o) => !o)}
-              aria-haspopup="menu"
-              aria-expanded={clubsOpen}
-              style={linkStyle}
-              className={`${linkBase} flex items-center gap-1 w-full min-w-0 ${isClubActive ? linkActive : ""}`}
-            >
-              <span ref={labelRef} className="block min-w-0 overflow-hidden whitespace-nowrap leading-tight">
-                {buttonLabel}
-              </span>
-              <ChevronIcon open={clubsOpen} />
-            </button>
+          <NavDropdown
+            title="Clubs"
+            items={clubItems}
+            emptyText="No clubs yet"
+            open={openMenu === "clubs"}
+            onToggle={() => toggle("clubs")}
+            onClose={closeClubs}
+          />
 
-            {clubsOpen && (
-              <div
-                role="menu"
-                className="absolute left-0 top-full mt-1 min-w-[12rem] max-w-[85vw] max-h-[70vh] overflow-y-auto bg-white rounded-md shadow-xl border border-gray py-1 z-50"
-              >
-                {clubs.length === 0 ? (
-                  <p className="px-4 py-2 text-gray text-sm">No clubs yet</p>
-                ) : (
-                  clubs.map((c) => (
-                    <Link
-                      key={c._id}
-                      to={`/club/${c._id}`}
-                      role="menuitem"
-                      style={{ fontSize: "clamp(12px, 3vw, 14px)" }}
-                      className={`block px-4 py-2 font-sans transition-colors
-                        ${pathname === `/club/${c._id}`
-                          ? "bg-[#003F72] text-white font-semibold"
-                          : "text-dark hover:bg-navypale hover:text-navy"}`}
-                    >
-                      {c.name}
-                    </Link>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          <Link
-            to="/tournaments"
-            style={linkStyle}
-            className={`${linkBase} shrink-0 ${pathname === "/tournaments" ? linkActive : ""}`}
-          >
-            Tournaments
-          </Link>
+          <NavDropdown
+            title="Tournaments"
+            items={tournamentItems}
+            emptyText="No tournaments yet"
+            open={openMenu === "tournaments"}
+            onToggle={() => toggle("tournaments")}
+            onClose={closeTournaments}
+          />
         </nav>
 
         <a

@@ -14,6 +14,19 @@ function formatDate(dateStr) {
     return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
 }
 
+/** Index of the day to open first: today's date, or the latest day that has already started
+ * (the first day before the tournament begins, the last day once it is over). */
+function currentDayIndex(dates) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    let index = 0;
+    dates.forEach((d, n) => {
+        const day = new Date(d);
+        if (new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime() <= today) index = n;
+    });
+    return index;
+}
+
 function padPart(part) {
     const digits = String(part || "").replace(/\D/g, "").slice(0, 2);
     return digits === "" ? "" : digits.padStart(2, "0");
@@ -369,7 +382,8 @@ export default function CreateResultPage() {
 
     useEffect(() => {
         if (tournament?.dates?.length && !activeDate) {
-            setActiveDate(new Date(tournament.dates[0]).toISOString().split("T")[0]);
+            const first = tournament.dates[currentDayIndex(tournament.dates)];
+            setActiveDate(new Date(first).toISOString().split("T")[0]);
         }
     }, [tournament, activeDate]);
 
