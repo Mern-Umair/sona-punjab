@@ -9,20 +9,32 @@ import {
 } from "../../redux/api/tournamentApi";
 import FitRow from "../components/FitRow";
 
+// Tournament dates are stored as the calendar day that was typed (a Pakistan date).
+// They are always shown as that same day, whatever timezone the admin is in.
 function formatDate(dateStr) {
     const d = new Date(dateStr);
-    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+    return `${String(d.getUTCDate()).padStart(2, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${d.getUTCFullYear()}`;
 }
 
-/** Index of the day to open first: today's date, or the latest day that has already started
- * (the first day before the tournament begins, the last day once it is over). */
+/** Today's date in Pakistan as "YYYY-MM-DD", wherever in the world the page is opened. */
+function pakistanToday() {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Karachi",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).formatToParts(new Date());
+    const get = (type) => parts.find((p) => p.type === type).value;
+    return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+/** Index of the day to open first: today's date in Pakistan, or the latest day that has already
+ * started (the first day before the tournament begins, the last day once it is over). */
 function currentDayIndex(dates) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const today = pakistanToday();
     let index = 0;
     dates.forEach((d, n) => {
-        const day = new Date(d);
-        if (new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime() <= today) index = n;
+        if (new Date(d).toISOString().slice(0, 10) <= today) index = n;
     });
     return index;
 }

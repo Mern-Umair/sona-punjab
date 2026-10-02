@@ -39,8 +39,8 @@ function CreateOwnerModal({ onClose, onSave, initial }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-      <div className="min-h-screen flex items-start justify-center px-4 py-8 mt-8">
-        <div className="bg-white rounded-xl w-full max-w-xl shadow-xl">
+      <div className="min-h-screen flex items-start justify-center px-3 py-4 sm:px-4 sm:py-8 sm:mt-8">
+        <div className="modal-compact bg-white rounded-xl w-full max-w-lg shadow-xl">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
             <h3 className="text-slate-800 font-bold text-lg">
               {initial ? "Edit Pigeon Owner" : "Create Pigeon Owner"}

@@ -7,22 +7,35 @@ import {
   useGetTournamentTotalQuery,
 } from "../../redux/api/tournamentApi";
 import FitRow from "./FitRow";
+import FitTable from "./FitTable";
 
+// Tournament dates are stored as the calendar day the organiser typed (a Pakistan date).
+// They are always shown as that same day, whatever timezone the visitor is in.
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
-  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+  return `${String(d.getUTCDate()).padStart(2, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${d.getUTCFullYear()}`;
 }
 
-/** Index of the day to open first: today's date, or the latest day that has already started
- * (the first day before the tournament begins, the last day once it is over). */
+/** Today's date in Pakistan as "YYYY-MM-DD", wherever in the world the page is opened. */
+function pakistanToday() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Karachi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type) => parts.find((p) => p.type === type).value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+/** Index of the day to open first: today's date in Pakistan, or the latest day that has already
+ * started (the first day before the tournament begins, the last day once it is over). */
 function currentDayIndex(dates) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const today = pakistanToday();
   let index = 0;
   dates.forEach((d, n) => {
-    const day = new Date(d);
-    if (new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime() <= today) index = n;
+    if (new Date(d).toISOString().slice(0, 10) <= today) index = n;
   });
   return index;
 }
@@ -120,7 +133,8 @@ function TournamentBlock({ tournament }) {
     return best;
   })();
 
-  // Last winner = highest time across all pigeon columns for all owners
+  // Last winner = highest time across all pigeon columns for all owners.
+  // Same time in two columns: the later pigeon (higher number) is the last one.
   const lastWinnerPigeon = (() => {
     if (isTotal || isDoubleTotal) return null;
     let best = null;
@@ -133,7 +147,7 @@ function TournamentBlock({ tournament }) {
         const t = matched.times[ti];
         const secs = timeToSeconds(t);
         if (secs === null) continue;
-        if (!best || secs > best.seconds) {
+        if (!best || secs > best.seconds || (secs === best.seconds && ti >= best.colIndex)) {
           best = { ownerId: String(owner._id), colIndex: ti, time: t, seconds: secs, ownerName: owner.name };
         }
       }
@@ -202,6 +216,17 @@ function TournamentBlock({ tournament }) {
     return matched?.startTime || tournament.startTime || "—";
   };
 
+  // Public ranking: the longest total time comes first; owners without a result stay at the
+  // bottom in their original order. (The admin result page keeps the fixed entry order.)
+  const rankedOwners = (tournament.owners || [])
+    .map((owner, position) => ({
+      owner,
+      position,
+      seconds: timeToSeconds(ownerResult(owner)?.total) ?? -1,
+    }))
+    .sort((a, b) => b.seconds - a.seconds || a.position - b.position)
+    .map((entry) => entry.owner);
+
   const tabClass = (active) =>
     `rt-tab font-sans font-medium rounded transition-colors whitespace-nowrap ${
       active
@@ -261,7 +286,8 @@ function TournamentBlock({ tournament }) {
         </div>
       </div>
 
-      <div className="mx-2 sm:mx-4 overflow-x-auto">
+      {/* Phones: the whole table shrinks to fit the screen, no sideways scrolling */}
+      <FitTable className="mx-2 sm:mx-4">
         <table className="results-table w-full font-sans">
           <thead>
             <tr className="bg-navy text-white">
@@ -293,7 +319,7 @@ function TournamentBlock({ tournament }) {
                 </td>
               </tr>
             ) : (
-              tournament.owners.map((owner, i) => {
+              rankedOwners.map((owner, i) => {
                 const matched = ownerResult(owner);
                 const isBlinking = !!blinkingRows[owner._id];
                 return (
@@ -369,7 +395,7 @@ function TournamentBlock({ tournament }) {
             )}
           </tbody>
         </table>
-      </div>
+      </FitTable>
     </section>
   );
 }

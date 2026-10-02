@@ -19,7 +19,8 @@ function formatDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "—";
-  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+  // Shown as the calendar day that was typed (a Pakistan date), in every timezone
+  return `${String(d.getUTCDate()).padStart(2, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${d.getUTCFullYear()}`;
 }
 
 function isoToDmy(iso) {
@@ -207,8 +208,8 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-      <div className="min-h-screen flex items-start justify-center px-4 py-8 mt-8">
-        <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl">
+      <div className="min-h-screen flex items-start justify-center px-3 py-4 sm:px-4 sm:py-8 sm:mt-8">
+        <div className="modal-compact bg-white rounded-xl w-full max-w-xl shadow-xl">
 
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">

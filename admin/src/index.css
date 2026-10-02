@@ -58,3 +58,43 @@ html, body, #root {
   padding: 0.35em 0.3em;
   border-width: 1px;
 }
+
+/* Time fields: phones (iOS) give them a fixed minimum width that pushes them out of their
+   box, and collapse them when empty. Make them behave like every other field. */
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.6em;
+  text-align: left;
+}
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* Phones: every modal (.modal-compact) is tighter so it fits the screen. Fields keep 16px
+   text, because iOS zooms the whole page when a field with smaller text gets focus. */
+@media (max-width: 639px) {
+  .modal-compact .px-6 { padding-left: 12px; padding-right: 12px; }
+  .modal-compact .py-4 { padding-top: 10px; padding-bottom: 10px; }
+  .modal-compact .p-6 { padding: 12px; }
+  .modal-compact .space-y-5 > * + * { margin-top: 10px; }
+  .modal-compact .space-y-4 > * + * { margin-top: 10px; }
+  .modal-compact h3 { font-size: 15px; }
+  .modal-compact label { font-size: 12px; margin-bottom: 2px; }
+  .modal-compact input:not([type="checkbox"]):not([type="file"]):not([type="range"]),
+  .modal-compact select,
+  .modal-compact textarea {
+    font-size: 16px;
+    padding: 6px 10px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .modal-compact button { font-size: 13px; }
+  .modal-compact .w-48 { width: 100%; }
+  .modal-compact .py-3 { padding-top: 9px; padding-bottom: 9px; }
+  .modal-compact .max-h-52 { max-height: 10rem; }
+}

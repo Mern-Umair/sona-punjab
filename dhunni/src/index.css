@@ -54,21 +54,22 @@ html, body, #root {
 }
 
 /* Result tables: striped odd rows + full grid borders (sikeryalipigeon.com style).
-   Everything is fluid: font, padding, avatar and pinned-column widths shrink with the screen. */
+   Everything is fluid: font, padding, avatar and column widths shrink with the screen.
+   --fit (set by FitTable, 1 = normal) shrinks all of it further until the table fits a phone. */
 .results-table {
-  --sr-w: clamp(20px, 5.5vw, 40px);
-  --pic-w: clamp(34px, 9.5vw, 70px);
+  --sr-w: calc(clamp(20px, 5.5vw, 40px) * var(--fit, 1));
+  --pic-w: calc(clamp(34px, 9.5vw, 70px) * var(--fit, 1));
   border-collapse: separate;
   border-spacing: 0;
   border-top: 1px solid #b8c2d1;
   border-left: 1px solid #b8c2d1;
-  font-size: clamp(9px, 2.5vw, 14px);
+  font-size: calc(clamp(9px, 2.5vw, 14px) * var(--fit, 1));
 }
 .results-table th,
 .results-table td {
   border-right: 1px solid #b8c2d1;
   border-bottom: 1px solid #b8c2d1;
-  padding: clamp(3px, 1vw, 10px) clamp(3px, 0.9vw, 12px);
+  padding: calc(clamp(3px, 1vw, 10px) * var(--fit, 1)) calc(clamp(3px, 0.9vw, 12px) * var(--fit, 1));
   vertical-align: middle;
 }
 .results-table thead th {
@@ -83,24 +84,24 @@ html, body, #root {
   min-width: var(--pic-w);
 }
 .rt-col-name {
-  min-width: clamp(70px, 20vw, 160px);
-  max-width: clamp(110px, 30vw, 240px);
+  min-width: calc(clamp(70px, 20vw, 160px) * var(--fit, 1));
+  max-width: calc(clamp(110px, 30vw, 240px) * var(--fit, 1));
 }
 .rt-avatar {
-  width: clamp(22px, 6.5vw, 44px);
-  height: clamp(22px, 6.5vw, 44px);
-  font-size: clamp(8px, 2.4vw, 14px);
+  width: calc(clamp(22px, 6.5vw, 44px) * var(--fit, 1));
+  height: calc(clamp(22px, 6.5vw, 44px) * var(--fit, 1));
+  font-size: calc(clamp(8px, 2.4vw, 14px) * var(--fit, 1));
 }
 .rt-name {
-  font-size: clamp(9px, 2.6vw, 14px);
+  font-size: calc(clamp(9px, 2.6vw, 14px) * var(--fit, 1));
   white-space: normal;
   overflow-wrap: anywhere;
 }
 .rt-city {
-  font-size: clamp(7px, 2vw, 11px);
+  font-size: calc(clamp(7px, 2vw, 11px) * var(--fit, 1));
 }
 .rt-stamp {
-  font-size: clamp(7px, 2vw, 9px);
+  font-size: calc(clamp(7px, 2vw, 9px) * var(--fit, 1));
 }
 /* Date tabs: always ONE row; FitRow shrinks the font and everything here follows in em */
 .fit-row {

@@ -6,7 +6,8 @@ function formatDate(d) {
     if (!d) return "";
     const dt = new Date(d);
     if (Number.isNaN(dt.getTime())) return "";
-    return `${String(dt.getDate()).padStart(2, "0")}-${String(dt.getMonth() + 1).padStart(2, "0")}-${dt.getFullYear()}`;
+    // Shown as the calendar day that was typed (a Pakistan date), in every timezone
+    return `${String(dt.getUTCDate()).padStart(2, "0")}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${dt.getUTCFullYear()}`;
 }
 
 function TournamentCard({ tournament }) {
@@ -98,13 +99,13 @@ export default function ClubTournaments({ clubId }) {
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     const years = [...new Set(filtered.map(t =>
-        t.startDate ? new Date(t.startDate).getFullYear() : null
+        t.startDate ? new Date(t.startDate).getUTCFullYear() : null
     ).filter(Boolean))].sort((a, b) => b - a);
 
     const [selectedYear, setSelectedYear] = useState(years[0] || null);
 
     const yearFiltered = selectedYear
-        ? filtered.filter(t => t.startDate && new Date(t.startDate).getFullYear() === selectedYear)
+        ? filtered.filter(t => t.startDate && new Date(t.startDate).getUTCFullYear() === selectedYear)
         : filtered;
 
     if (isLoading) {
