@@ -93,6 +93,15 @@ input[type="time"]::-webkit-date-and-time-value {
     min-width: 0;
     max-width: 100%;
   }
+  /* Same height for every one-line field, so text, date, time and select boxes line up */
+  .modal-compact input:not([type="checkbox"]):not([type="file"]):not([type="range"]),
+  .modal-compact select {
+    height: 38px;
+    min-height: 0;
+  }
+  /* Poster / picture box and its caption */
+  .modal-compact .w-24.h-24 { width: 64px; height: 64px; }
+  .modal-compact p.text-sm { font-size: 12px; margin-bottom: 4px; }
   .modal-compact button { font-size: 13px; }
   .modal-compact .w-48 { width: 100%; }
   .modal-compact .py-3 { padding-top: 9px; padding-bottom: 9px; }

@@ -207,7 +207,7 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[200] overflow-y-auto">
       <div className="min-h-screen flex items-start justify-center px-3 py-4 sm:px-4 sm:py-8 sm:mt-8">
         <div className="modal-compact bg-white rounded-xl w-full max-w-xl shadow-xl">
 
