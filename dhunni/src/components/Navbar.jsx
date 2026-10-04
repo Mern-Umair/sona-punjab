@@ -221,18 +221,27 @@ export default function Navbar() {
           />
         </nav>
 
-        <a
-          href="https://sona-punjab-admin.onrender.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            fontSize: "clamp(9px, 2.3vw, 14px)",
-            padding: "clamp(3px, 1vw, 6px) clamp(6px, 1.8vw, 12px)",
-          }}
-          className="shrink-0 font-semibold rounded border border-white/60 text-white hover:bg-white hover:text-[#003F72] transition-colors whitespace-nowrap"
-        >
-          Admin Login
-        </a>
+        <div className="flex items-center shrink-0" style={{ gap: "clamp(6px, 1.5vw, 12px)" }}>
+          <a
+            href="tel:+923436586872"
+            style={{ fontSize: "clamp(9px, 2.3vw, 14px)" }}
+            className="font-semibold text-white whitespace-nowrap hover:text-white/80 transition-colors"
+          >
+            +92 343 6586872
+          </a>
+          <a
+            href="https://sona-punjab-admin.onrender.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: "clamp(9px, 2.3vw, 14px)",
+              padding: "clamp(3px, 1vw, 6px) clamp(6px, 1.8vw, 12px)",
+            }}
+            className="font-semibold rounded border border-white/60 text-white hover:bg-white hover:text-[#003F72] transition-colors whitespace-nowrap"
+          >
+            sona punjab
+          </a>
+        </div>
       </div>
     </header>
   );
