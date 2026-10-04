@@ -80,26 +80,44 @@ function timeToSeconds(t) {
     return h * 3600 + m * 60 + s;
 }
 
-/** Operator enters 12h clock without AM/PM. If time is before fly time (e.g. 02:55 with fly 05:00), treat as PM → 14:55. */
-function convertPmTo24Hour(timeStr, flyTimeStr) {
-    const t = normalizeTime(timeStr);
-    if (!t || !isValidTime(t)) return t;
-
-    const [h, m, s] = t.split(":").map(Number);
-    if (h === 0 || h >= 12) return t;
-
-    const flySec = timeToSeconds(flyTimeStr);
-    const arrSec = timeToSeconds(t);
-    if (flySec === null || arrSec === null) return t;
-
-    if (arrSec < flySec) {
-        return `${String(h + 12).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-    }
-    return t;
+/** Split stored 24h time into 12h display parts + AM/PM. */
+function parseTo12Hour(time24, defaultPeriod = "PM") {
+    if (!time24) return { parts: ["", "", ""], period: defaultPeriod };
+    const n = normalizeTime(time24);
+    if (!n) return { parts: ["", "", ""], period: defaultPeriod };
+    const [H, M, S] = n.split(":").map(Number);
+    const period = H >= 12 ? "PM" : "AM";
+    let h12 = H % 12;
+    if (h12 === 0) h12 = 12;
+    return {
+        parts: [
+            String(h12).padStart(2, "0"),
+            String(M).padStart(2, "0"),
+            String(S).padStart(2, "0"),
+        ],
+        period,
+    };
 }
 
-const PART_MAX = [23, 59, 59];
-const POP_W = 210;
+/** Build 24h HH:MM:SS from 12h parts + AM/PM. Returns null if hour is invalid. */
+function to24Hour(parts, period) {
+    if (!parts || parts.every((p) => !p)) return "";
+    const padded = parts.map((p) => (p === "" ? "00" : padPart(p)));
+    let h = Number(padded[0]);
+    const m = Number(padded[1]);
+    const s = Number(padded[2]);
+    if (Number.isNaN(h) || h < 1 || h > 12) return null;
+    if (Number.isNaN(m) || m > 59 || Number.isNaN(s) || s > 59) return null;
+    if (period === "AM") {
+        if (h === 12) h = 0;
+    } else if (h !== 12) {
+        h += 12;
+    }
+    return `${String(h).padStart(2, "0")}:${padded[1]}:${padded[2]}`;
+}
+
+const PART_MAX_12 = [12, 59, 59];
+const POP_W = 250;
 
 /** Phones and tablets: an on-screen keyboard will cover the lower part of the screen. */
 function isTouchScreen() {
@@ -133,19 +151,23 @@ function TimeInput({
     onChange,
     onSave,
     onCancel,
+    onClear,
     saving,
     showDoubleStamp = false,
     doubleStamp = false,
     onDoubleStampChange,
-    flyTime = "",
+    defaultPeriod = "PM",
 }) {
-    const [h = "", m = "", sec = ""] = String(value || "").split(":");
-    const parts = [h, m, sec];
-    // Always holds the newest parts, including ones emitted in this same event
-    // (a blur fired by moving focus must not overwrite a value just typed).
+    const initial = parseTo12Hour(value, defaultPeriod);
+    const [period, setPeriod] = useState(initial.period);
+    const [parts, setParts] = useState(initial.parts);
     const partsRef = useRef(parts);
+    const periodRef = useRef(period);
     useEffect(() => {
         partsRef.current = parts;
+    });
+    useEffect(() => {
+        periodRef.current = period;
     });
 
     const ref0 = useRef(null);
@@ -157,8 +179,6 @@ function TimeInput({
     const [pos, setPos] = useState(null);
     const [touch] = useState(isTouchScreen);
 
-    // Scrolls the page just enough to bring the popover above the keyboard
-    // (visual viewport = the part of the screen that is actually visible).
     const keepVisible = useCallback(() => {
         const box = boxRef.current;
         const vv = window.visualViewport;
@@ -170,7 +190,6 @@ function TimeInput({
 
     useEffect(() => {
         if (!touch) return;
-        // Room to scroll, so rows at the very bottom can also move above the keyboard
         const before = document.body.style.paddingBottom;
         document.body.style.paddingBottom = "70vh";
         const vv = window.visualViewport;
@@ -183,16 +202,12 @@ function TimeInput({
         };
     }, [touch, keepVisible]);
 
-    // Position relative to the cell once mounted, then focus the first box.
     const setBox = useCallback((node) => {
         boxRef.current = node;
         if (!node) return;
         const cell = anchorRef.current;
         if (cell) {
             const r = cell.getBoundingClientRect();
-            // Page coordinates (not fixed): the popover scrolls with the page, so when the
-            // phone keyboard opens the browser can scroll it into view instead of hiding it.
-            // Clamped inside the table's scroll box so it never hangs off the table edge.
             const wrap = cell.closest(".overflow-x-auto");
             const w = wrap ? wrap.getBoundingClientRect() : { left: 0, right: window.innerWidth };
             const minLeft = Math.max(4, w.left + 4);
@@ -206,7 +221,6 @@ function TimeInput({
         ref0.current?.select();
     }, []);
 
-    // Tap / click outside closes the popover
     useEffect(() => {
         const onDown = (e) => {
             if (boxRef.current && !boxRef.current.contains(e.target)) onCancel();
@@ -226,15 +240,23 @@ function TimeInput({
         el.select();
     };
 
-    const emit = (next) => {
-        partsRef.current = next;
-        onChange(next.every((x) => x === "") ? "" : next.join(":"));
+    const emit = (nextParts, nextPeriod = periodRef.current) => {
+        partsRef.current = nextParts;
+        setParts(nextParts);
+        if (nextParts.every((x) => x === "")) {
+            onChange("");
+            return;
+        }
+        // Only push a full 24h value once hour is complete enough to convert
+        const hourDone = String(nextParts[0] || "").length === 2;
+        if (!hourDone) return;
+        const as24 = to24Hour(nextParts, nextPeriod);
+        if (as24 !== null) onChange(as24);
     };
 
     const setPart = (i, rawVal) => {
         const digitsAll = String(rawVal).replace(/\D/g, "");
         if (digitsAll.length > 2) {
-            // A whole time pasted/typed into one box -> spread it
             const spread = [digitsAll.slice(0, 2), digitsAll.slice(2, 4), digitsAll.slice(4, 6)];
             emit(spread);
             focusPart(spread[2] ? 2 : spread[1] ? 1 : 0);
@@ -242,8 +264,9 @@ function TimeInput({
         }
         let digits = digitsAll;
         const next = [...partsRef.current];
-        // First digit too big for this slot (e.g. 7 hours, 8 minutes) -> pad and move on
-        if (digits.length === 1 && Number(digits) > (i === 0 ? 2 : 5)) digits = "0" + digits;
+        // Hour 1–12: if first digit is 2–9, pad and advance
+        if (i === 0 && digits.length === 1 && Number(digits) > 1) digits = "0" + digits;
+        if (i > 0 && digits.length === 1 && Number(digits) > 5) digits = "0" + digits;
         next[i] = digits;
         emit(next);
         if (digits.length === 2 && i < 2) focusPart(i + 1);
@@ -259,12 +282,21 @@ function TimeInput({
         }
     };
 
-    const normalized = normalizeTime(value);
-    const isEmpty = !normalized;
-    const valid = isEmpty || isValidTime(normalized);
-    const partInvalid = (i) => parts[i] !== "" && Number(parts[i]) > PART_MAX[i];
-    const finalTime = !isEmpty && valid && flyTime ? convertPmTo24Hour(normalized, flyTime) : normalized;
-    const pmApplied = !!finalTime && finalTime !== normalized;
+    const changePeriod = (nextPeriod) => {
+        setPeriod(nextPeriod);
+        periodRef.current = nextPeriod;
+        emit(partsRef.current, nextPeriod);
+    };
+
+    const as24 = to24Hour(parts, period);
+    const isEmpty = parts.every((p) => !p);
+    const valid = isEmpty || (as24 !== null && isValidTime(as24));
+    const partInvalid = (i) => {
+        if (parts[i] === "") return false;
+        const n = Number(parts[i]);
+        if (i === 0) return n < 1 || n > 12;
+        return n > PART_MAX_12[i];
+    };
 
     const handleKey = (i, e) => {
         if (e.key === "Enter") {
@@ -297,10 +329,22 @@ function TimeInput({
         }
     };
 
-    // Phones: 16px text, otherwise iOS zooms the whole page when a box gets focus
     const boxClass = (i) =>
         `w-10 h-9 ${touch ? "text-base" : "text-sm"} text-center font-bold tabular-nums rounded border outline-none
          ${partInvalid(i) ? "border-red-400 bg-red-50 text-red-700" : "border-slate-300 focus:border-[#0ea5e9] text-[#122654]"}`;
+
+    const periodBtn = (label) => (
+        <button
+            type="button"
+            onClick={() => changePeriod(label)}
+            className={`px-2.5 h-8 rounded text-xs font-bold transition-colors
+              ${period === label
+                    ? "bg-[#122654] text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+        >
+            {label}
+        </button>
+    );
 
     const popover = (
         <div
@@ -329,7 +373,28 @@ function TimeInput({
                     onFocus={(e) => e.target.select()} onKeyDown={(e) => handleKey(2, e)} className={boxClass(2)} />
             </div>
 
-            {/* Second row: Double Stamp on the left, tick and cross far apart on the right */}
+            <div className="flex items-center justify-center gap-1.5 mt-2">
+                {periodBtn("AM")}
+                {periodBtn("PM")}
+                <button
+                    type="button"
+                    title="Save"
+                    onClick={onSave}
+                    disabled={saving || !valid}
+                    className="w-9 h-8 rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-40 flex items-center justify-center"
+                >
+                    <CheckIcon />
+                </button>
+                <button
+                    type="button"
+                    title="Close"
+                    onClick={onCancel}
+                    className="w-9 h-8 rounded bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center"
+                >
+                    <CrossIcon />
+                </button>
+            </div>
+
             <div className="flex items-center justify-between gap-2 mt-2">
                 {showDoubleStamp ? (
                     <label className="flex items-center gap-1.5 text-[11px] text-slate-700 cursor-pointer select-none whitespace-nowrap">
@@ -344,37 +409,30 @@ function TimeInput({
                 ) : (
                     <span />
                 )}
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        title="Save"
-                        onClick={onSave}
-                        disabled={saving || !valid}
-                        className="w-9 h-8 rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-40 flex items-center justify-center"
-                    >
-                        <CheckIcon />
-                    </button>
-                    <button
-                        type="button"
-                        title="Close"
-                        onClick={onCancel}
-                        className="w-9 h-8 rounded bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center"
-                    >
-                        <CrossIcon />
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    title="Clear"
+                    onClick={() => {
+                        setParts(["", "", ""]);
+                        partsRef.current = ["", "", ""];
+                        onChange("");
+                        onClear?.();
+                    }}
+                    disabled={saving}
+                    className="px-2 h-8 rounded text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-40"
+                >
+                    Clear
+                </button>
             </div>
 
             {!valid ? (
-                <p className="text-[10px] text-red-600 mt-1">Invalid: HH 00-23, MM/SS 00-59</p>
-            ) : pmApplied ? (
-                <p className="text-[10px] text-amber-700 mt-1">Will be saved as {finalTime} (PM)</p>
+                <p className="text-[10px] text-red-600 mt-1">Invalid: HH 01-12, MM/SS 00-59</p>
+            ) : !isEmpty && as24 ? (
+                <p className="text-[10px] text-slate-500 mt-1">Saves as {as24} ({period})</p>
             ) : null}
         </div>
     );
 
-    // Invisible anchor stays inside the cell; the popover itself is portaled to <body>
-    // so the table's scroll box can never clip it.
     return (
         <>
             <span ref={anchorRef} className="absolute inset-0 pointer-events-none" aria-hidden="true" />
@@ -471,7 +529,7 @@ export default function CreateResultPage() {
         try {
             const draft = draftOverride ?? (draftData[ownerId] || getOwnerDraft(ownerId));
             const startTime = normalizeTime(draft.startTime);
-            const times = draft.times.map((t) => convertPmTo24Hour(normalizeTime(t), startTime));
+            const times = draft.times.map((t) => normalizeTime(t));
             const doubleStamps = Array.from({ length: totalSlots }, (_, i) =>
                 !!draft.doubleStamps?.[i] && !!times[i]
             );
@@ -517,8 +575,22 @@ export default function CreateResultPage() {
             return;
         }
         const startTime = normalizeTime(draft.startTime);
-        times[index] = convertPmTo24Hour(times[index], startTime);
+        times[index] = normalizeTime(times[index]);
         await saveToDatabase(ownerId, { ...draft, startTime, times });
+    };
+
+    const clearFlyTime = async (ownerId) => {
+        const draft = draftData[ownerId] || getOwnerDraft(ownerId);
+        await saveToDatabase(ownerId, { ...draft, startTime: "" });
+    };
+
+    const clearPigeonTime = async (ownerId, index) => {
+        const draft = draftData[ownerId] || getOwnerDraft(ownerId);
+        const times = [...draft.times];
+        const doubleStamps = [...(draft.doubleStamps || Array(totalSlots).fill(false))];
+        times[index] = "";
+        doubleStamps[index] = false;
+        await saveToDatabase(ownerId, { ...draft, times, doubleStamps });
     };
 
     if (tLoading) {
@@ -620,7 +692,9 @@ export default function CreateResultPage() {
                                                         onChange={(val) => updateDraft(owner._id, "startTime", val)}
                                                         onCancel={() => cancelEdit(owner._id)}
                                                         onSave={() => saveFlyTime(owner._id)}
+                                                        onClear={() => clearFlyTime(owner._id)}
                                                         saving={saving}
+                                                        defaultPeriod="AM"
                                                     />
                                                 )}
                                             </td>
@@ -644,17 +718,18 @@ export default function CreateResultPage() {
                                                         editingCell?.field === "times" &&
                                                         editingCell?.index === idx && (
                                                             <TimeInput
-                                                                flyTime={draft.startTime}
                                                                 value={draft.times[idx]}
                                                                 onChange={(val) => updateDraft(owner._id, "times", val, idx)}
                                                                 onCancel={() => cancelEdit(owner._id)}
                                                                 onSave={() => savePigeonTime(owner._id, idx)}
+                                                                onClear={() => clearPigeonTime(owner._id, idx)}
                                                                 saving={saving}
                                                                 showDoubleStamp
                                                                 doubleStamp={!!draft.doubleStamps?.[idx]}
                                                                 onDoubleStampChange={(checked) =>
                                                                     updateDraft(owner._id, "doubleStamp", checked, idx)
                                                                 }
+                                                                defaultPeriod="PM"
                                                             />
                                                         )}
                                                 </td>

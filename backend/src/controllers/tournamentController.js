@@ -27,23 +27,14 @@ const calculateDuration = (startTime, arrivalTime) => {
   return diff + 24 * 3600;
 };
 
-const convertPmTo24Hour = (timeStr, flyTimeStr) => {
+/** Pass-through normalize; AM/PM is chosen in admin UI before save. */
+const convertPmTo24Hour = (timeStr) => {
   if (!timeStr) return timeStr;
   const parts = String(timeStr).trim().split(":").map(Number);
   if (parts.some((n) => Number.isNaN(n)) || parts.length < 2) return timeStr;
 
-  let [h, m, s = 0] = parts;
+  const [h, m, s = 0] = parts;
   if (h < 0 || h > 23 || m > 59 || s > 59) return timeStr;
-  if (h === 0 || h >= 12) {
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-
-  const flySec = timeToSeconds(flyTimeStr);
-  const arrSec = h * 3600 + m * 60 + s;
-  if (flySec !== null && arrSec < flySec) {
-    h += 12;
-  }
-
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
