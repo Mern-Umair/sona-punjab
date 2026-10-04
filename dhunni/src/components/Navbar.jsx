@@ -187,6 +187,22 @@ export default function Navbar() {
   const closeClubs = () => setOpenMenu((current) => (current === "clubs" ? null : current));
   const closeTournaments = () =>
     setOpenMenu((current) => (current === "tournaments" ? null : current));
+  const closeContact = () => setOpenMenu((current) => (current === "contact" ? null : current));
+
+  const contactRef = useRef(null);
+
+  useEffect(() => {
+    if (openMenu !== "contact") return;
+    const onDown = (e) => {
+      if (contactRef.current && !contactRef.current.contains(e.target)) closeContact();
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, [openMenu]);
 
   return (
     <header className="sticky top-0 z-50 w-full shadow-md nav-gradient">
@@ -222,13 +238,36 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center shrink-0" style={{ gap: "clamp(6px, 1.5vw, 12px)" }}>
-          <a
-            href="tel:+923436586872"
-            style={{ fontSize: "clamp(9px, 2.3vw, 14px)" }}
-            className="font-semibold text-white whitespace-nowrap hover:text-white/80 transition-colors"
-          >
-            +92 343 6586872
-          </a>
+          <div ref={contactRef} className="relative">
+            <button
+              type="button"
+              onClick={() => toggle("contact")}
+              aria-haspopup="menu"
+              aria-expanded={openMenu === "contact"}
+              style={linkStyle}
+              className={`${linkBase} flex items-center gap-1 shrink-0`}
+            >
+              Contact
+              <ChevronIcon open={openMenu === "contact"} />
+            </button>
+
+            {openMenu === "contact" && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-1 min-w-[12rem] bg-white rounded-md shadow-xl border border-gray py-1 z-50"
+              >
+                <a
+                  href="tel:+923436586872"
+                  role="menuitem"
+                  style={{ fontSize: "clamp(12px, 3vw, 14px)" }}
+                  className="block px-4 py-2 font-sans font-semibold text-dark hover:bg-navypale hover:text-navy transition-colors whitespace-nowrap"
+                >
+                  +92 343 6586872
+                </a>
+              </div>
+            )}
+          </div>
+
           <a
             href="https://sona-punjab-admin.onrender.com"
             target="_blank"

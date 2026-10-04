@@ -87,11 +87,12 @@ function TournamentBlock({ tournament }) {
   const isLoading = dayLoading || totalLoading;
 
   const results = isDoubleTotal ? doubleStampResults : isTotal ? totalResults : dayResults;
-  const pigeons = tournament.pigeons || 3;
+  const pigeons = tournament.pigeons || 0;
+  const helperPigeons = tournament.helperPigeons || 0;
+  const totalSlots = pigeons + helperPigeons || 3;
 
   const totalPigeonSlots =
-    ((tournament.pigeons || 0) + (tournament.helperPigeons || 0)) *
-    (tournament.owners?.length || 0);
+    totalSlots * (tournament.owners?.length || 0);
 
   const landed = isTotal || isDoubleTotal
     ? (() => {
@@ -143,7 +144,7 @@ function TournamentBlock({ tournament }) {
         (r) => String(r.owner?._id || r.owner) === String(owner._id)
       );
       if (!matched?.times) return;
-      for (let ti = 0; ti < pigeons; ti++) {
+      for (let ti = 0; ti < totalSlots; ti++) {
         const t = matched.times[ti];
         const secs = timeToSeconds(t);
         if (secs === null) continue;
@@ -205,7 +206,7 @@ function TournamentBlock({ tournament }) {
 
   const isDay = !isTotal && !isDoubleTotal;
   const lofts = tournament.lofts || tournament.owners?.length || 0;
-  const colCount = 5 + (isDay ? pigeons : dates.length);
+  const colCount = 5 + (isDay ? totalSlots : dates.length);
 
   const ownerResult = (owner) =>
     results.find((r) => String(r.owner?._id || r.owner) === String(owner._id));
@@ -296,7 +297,7 @@ function TournamentBlock({ tournament }) {
               <th className="rt-col-name text-left font-semibold">Name</th>
               <th className="text-center font-semibold whitespace-nowrap">Start Time</th>
               {isDay
-                ? Array.from({ length: pigeons }).map((_, n) => (
+                ? Array.from({ length: totalSlots }).map((_, n) => (
                   <th key={n} className="text-center font-semibold whitespace-nowrap">#{n + 1}</th>
                 ))
                 : totalDateCols.map((col, i) => (
@@ -348,7 +349,7 @@ function TournamentBlock({ tournament }) {
                     <td className="text-center text-dark font-semibold whitespace-nowrap">{startTimeFor(owner)}</td>
 
                     {isDay
-                      ? Array.from({ length: pigeons }).map((_, ti) => {
+                      ? Array.from({ length: totalSlots }).map((_, ti) => {
                         const tone = isLastWinnerCell(owner._id, ti)
                           ? "bg-green-600 text-white font-semibold animate-winner-blink-last"
                           : "text-dark font-semibold";
