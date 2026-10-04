@@ -206,7 +206,8 @@ function TournamentBlock({ tournament }) {
 
   const isDay = !isTotal && !isDoubleTotal;
   const lofts = tournament.lofts || tournament.owners?.length || 0;
-  const colCount = 5 + (isDay ? totalSlots : dates.length);
+  // Name | Start Time (day) | pigeon/date cols | Total
+  const colCount = (isDay ? 3 : 2) + (isDay ? totalSlots : dates.length);
 
   const ownerResult = (owner) =>
     results.find((r) => String(r.owner?._id || r.owner) === String(owner._id));
@@ -287,23 +288,23 @@ function TournamentBlock({ tournament }) {
         </div>
       </div>
 
-      {/* Phones: the whole table shrinks to fit the screen, no sideways scrolling */}
+      {/* Day view (first screen) + Total views (second screens): open layout, tight spacing */}
       <FitTable className="mx-2 sm:mx-4">
         <table className="results-table w-full font-sans">
           <thead>
-            <tr className="bg-navy text-white">
-              <th className="rt-col-sr text-center font-semibold">Sr</th>
-              <th className="rt-col-pic text-center font-semibold">Picture</th>
-              <th className="rt-col-name text-left font-semibold">Name</th>
-              <th className="text-center font-semibold whitespace-nowrap">Start Time</th>
+            <tr>
+              <th className="rt-col-name text-left">Name</th>
+              {isDay && (
+                <th className="text-center whitespace-nowrap">Start Time</th>
+              )}
               {isDay
                 ? Array.from({ length: totalSlots }).map((_, n) => (
-                  <th key={n} className="text-center font-semibold whitespace-nowrap">#{n + 1}</th>
+                  <th key={n} className="text-center whitespace-nowrap"># {n + 1}</th>
                 ))
                 : totalDateCols.map((col, i) => (
-                  <th key={i} className="text-center font-semibold whitespace-nowrap">{col}</th>
+                  <th key={i} className="text-center whitespace-nowrap">{col}</th>
                 ))}
-              <th className="text-center font-semibold whitespace-nowrap">Total</th>
+              <th className="text-center whitespace-nowrap">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -323,30 +324,40 @@ function TournamentBlock({ tournament }) {
               rankedOwners.map((owner, i) => {
                 const matched = ownerResult(owner);
                 const isBlinking = !!blinkingRows[owner._id];
+                const start = startTimeFor(owner);
                 return (
                   <tr
                     key={owner._id}
                     className={`transition-colors ${isBlinking ? "is-blinking animate-pulse bg-yellow-200" : ""}`}
                   >
-                    <td className="rt-col-sr text-center text-dark font-bold">{i + 1}</td>
-                    <td className="rt-col-pic text-center">
-                      {owner.imageUrl ? (
-                        <img
-                          src={owner.imageUrl}
-                          alt={owner.name}
-                          className="rt-avatar inline-block rounded-full object-cover border-2 border-blue-500"
-                        />
-                      ) : (
-                        <span className="rt-avatar inline-flex items-center justify-center rounded-full bg-navypale border-2 border-blue-500 text-navy font-bold">
-                          {owner.name?.charAt(0) || "?"}
-                        </span>
-                      )}
-                    </td>
                     <td className="rt-col-name">
-                      <p className="rt-name text-navy font-semibold leading-tight">{owner.name || "—"}</p>
-                      {owner.city && <p className="rt-city text-gray leading-tight">{owner.city}</p>}
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <span className="rt-rank text-center">{i + 1}</span>
+                        {owner.imageUrl ? (
+                          <img
+                            src={owner.imageUrl}
+                            alt={owner.name}
+                            className="rt-avatar rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="rt-avatar inline-flex items-center justify-center rounded-full bg-slate-200 text-slate-700 font-bold">
+                            {owner.name?.charAt(0) || "?"}
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <p className="rt-name leading-tight">{owner.name || "—"}</p>
+                          {owner.city && (
+                            <p className="rt-city leading-tight">{owner.city}</p>
+                          )}
+                        </div>
+                      </div>
                     </td>
-                    <td className="text-center text-dark font-semibold whitespace-nowrap">{startTimeFor(owner)}</td>
+
+                    {isDay && (
+                      <td className="rt-time text-center text-dark font-semibold whitespace-nowrap">
+                        {start}
+                      </td>
+                    )}
 
                     {isDay
                       ? Array.from({ length: totalSlots }).map((_, ti) => {
@@ -354,7 +365,7 @@ function TournamentBlock({ tournament }) {
                           ? "bg-green-600 text-white font-semibold animate-winner-blink-last"
                           : "text-dark font-semibold";
                         return (
-                          <td key={ti} className={`text-center whitespace-nowrap transition-colors ${tone}`}>
+                          <td key={ti} className={`rt-time text-center whitespace-nowrap transition-colors ${tone}`}>
                             <span className="inline-flex flex-col items-center justify-center gap-0.5">
                               {matched?.times?.[ti] || "—"}
                               {matched?.doubleStamps?.[ti] && matched?.times?.[ti] ? <StampIcon /> : null}
@@ -372,11 +383,11 @@ function TournamentBlock({ tournament }) {
                         );
                         if (isDoubleTotal && !dayResult?.isDoubleStamp) {
                           return (
-                            <td key={ti} className="text-center text-dark font-semibold">—</td>
+                            <td key={ti} className="rt-time text-center text-dark font-semibold">—</td>
                           );
                         }
                         return (
-                          <td key={ti} className="text-center text-dark font-semibold whitespace-nowrap">
+                          <td key={ti} className="rt-time text-center text-dark font-semibold whitespace-nowrap">
                             <span className="inline-flex flex-col items-center justify-center gap-0.5">
                               {isDoubleTotal
                                 ? (dayResult?.doubleStampTotal || "—")
@@ -387,7 +398,7 @@ function TournamentBlock({ tournament }) {
                         );
                       })}
 
-                    <td className="text-center font-bold text-navy whitespace-nowrap">
+                    <td className="rt-time text-center font-bold text-dark whitespace-nowrap">
                       {matched?.total || "No Result"}
                     </td>
                   </tr>

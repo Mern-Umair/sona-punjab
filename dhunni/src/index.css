@@ -53,55 +53,62 @@ html, body, #root {
   background: linear-gradient(to right, #003F72, #0b5a99);
 }
 
-/* Result tables: striped odd rows + full grid borders (sikeryalipigeon.com style).
-   Everything is fluid: font, padding, avatar and column widths shrink with the screen.
-   --fit (set by FitTable, 1 = normal) shrinks all of it further until the table fits a phone. */
+/* Result tables: open rows (no cell boxes), compact padding — matches leaderboard reference.
+   --fit (set by FitTable, 1 = normal) shrinks further until the table fits a phone. */
 .results-table {
-  --sr-w: calc(clamp(20px, 5.5vw, 40px) * var(--fit, 1));
-  --pic-w: calc(clamp(34px, 9.5vw, 70px) * var(--fit, 1));
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
-  border-top: 1px solid #b8c2d1;
-  border-left: 1px solid #b8c2d1;
-  font-size: calc(clamp(9px, 2.5vw, 14px) * var(--fit, 1));
+  border: none;
+  font-size: calc(clamp(9px, 2.4vw, 13px) * var(--fit, 1));
 }
 .results-table th,
 .results-table td {
-  border-right: 1px solid #b8c2d1;
-  border-bottom: 1px solid #b8c2d1;
-  padding: calc(clamp(3px, 1vw, 10px) * var(--fit, 1)) calc(clamp(3px, 0.9vw, 12px) * var(--fit, 1));
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  padding: calc(clamp(4px, 0.9vw, 8px) * var(--fit, 1)) calc(clamp(2px, 0.6vw, 8px) * var(--fit, 1));
   vertical-align: middle;
 }
 .results-table thead th {
-  border-color: #2c447a;
-}
-.rt-col-sr {
-  width: var(--sr-w);
-  min-width: var(--sr-w);
-}
-.rt-col-pic {
-  width: var(--pic-w);
-  min-width: var(--pic-w);
+  border-bottom: none;
+  background-color: #374151;
+  color: #fff;
+  font-weight: 600;
+  padding-top: calc(clamp(6px, 1.1vw, 10px) * var(--fit, 1));
+  padding-bottom: calc(clamp(6px, 1.1vw, 10px) * var(--fit, 1));
 }
 .rt-col-name {
-  min-width: calc(clamp(70px, 20vw, 160px) * var(--fit, 1));
-  max-width: calc(clamp(110px, 30vw, 240px) * var(--fit, 1));
+  min-width: calc(clamp(120px, 28vw, 220px) * var(--fit, 1));
+  max-width: calc(clamp(160px, 36vw, 280px) * var(--fit, 1));
+}
+.rt-rank {
+  width: calc(clamp(14px, 3.5vw, 22px) * var(--fit, 1));
+  font-size: calc(clamp(9px, 2.4vw, 13px) * var(--fit, 1));
+  color: #111827;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 .rt-avatar {
-  width: calc(clamp(22px, 6.5vw, 44px) * var(--fit, 1));
-  height: calc(clamp(22px, 6.5vw, 44px) * var(--fit, 1));
-  font-size: calc(clamp(8px, 2.4vw, 14px) * var(--fit, 1));
+  width: calc(clamp(28px, 7vw, 44px) * var(--fit, 1));
+  height: calc(clamp(28px, 7vw, 44px) * var(--fit, 1));
+  font-size: calc(clamp(9px, 2.4vw, 14px) * var(--fit, 1));
+  flex-shrink: 0;
 }
 .rt-name {
-  font-size: calc(clamp(9px, 2.6vw, 14px) * var(--fit, 1));
+  font-size: calc(clamp(10px, 2.5vw, 14px) * var(--fit, 1));
   white-space: normal;
   overflow-wrap: anywhere;
+  color: #111827;
+  font-weight: 700;
 }
 .rt-city {
-  font-size: calc(clamp(7px, 2vw, 11px) * var(--fit, 1));
+  font-size: calc(clamp(8px, 2vw, 11px) * var(--fit, 1));
+  color: #6b7280;
 }
 .rt-stamp {
-  font-size: calc(clamp(7px, 2vw, 9px) * var(--fit, 1));
+  font-size: calc(clamp(7px, 1.8vw, 9px) * var(--fit, 1));
+}
+.rt-time {
+  font-size: calc(clamp(7px, 1.8vw, 11px) * var(--fit, 1));
 }
 /* Date tabs: always ONE row; FitRow shrinks the font and everything here follows in em */
 .fit-row {
@@ -140,13 +147,13 @@ html, body, #root {
   display: none;
 }
 .results-table tbody tr:nth-child(odd):not(.is-blinking) {
-  background-color: #ecf0f5;
+  background-color: #eef2ff;
 }
 .results-table tbody tr:nth-child(even):not(.is-blinking) {
   background-color: #ffffff;
 }
 .results-table tbody tr:hover:not(.is-blinking) {
-  background-color: #d1ecf4;
+  background-color: #e0e7ff;
 }
 
 /* Last winner pigeon cell: keeps blinking until a later time takes its place */
