@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 
 // Below this the text is unreadable even when zoomed in, so the table scrolls sideways instead
-const MIN_FIT = 0.5;
+const MIN_FIT = 0.72;
 
 /**
  * Keeps a results table inside the screen width on phones: text, padding, pictures and
