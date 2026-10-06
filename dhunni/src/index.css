@@ -108,8 +108,7 @@ html, body, #root {
   font-size: calc(clamp(7px, 1.8vw, 9px) * var(--fit, 1));
 }
 .rt-time {
-  /* Keep times readable on phones even when FitTable shrinks the rest */
-  font-size: max(11px, calc(clamp(12px, 3.2vw, 16px) * var(--fit, 1)));
+  font-size: calc(clamp(9px, 2.2vw, 13px) * var(--fit, 1));
 }
 /* Date tabs: always ONE row; FitRow shrinks the font and everything here follows in em */
 .fit-row {
