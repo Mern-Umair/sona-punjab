@@ -59,6 +59,11 @@ function StampIcon() {
   );
 }
 
+// A pigeon time flashes this long after it was entered (several can flash at once)
+const FLASH_MS = 5 * 60 * 1000;
+// How often an open page asks for new times, so flashes start without a refresh
+const REFRESH_MS = 30 * 1000;
+
 function TournamentBlock({ tournament }) {
   const dates = tournament.dates || [];
   const [activeTab, setActiveTab] = useState(() => currentDayIndex(dates));
@@ -70,9 +75,9 @@ function TournamentBlock({ tournament }) {
       ? new Date(dates[activeTab]).toISOString().split("T")[0]
       : null;
 
-  const { data: dayData, isLoading: dayLoading } = useGetTournamentByDayQuery(
+  const { data: dayData, isLoading: dayLoading, fulfilledTimeStamp: dayFetchedAt } = useGetTournamentByDayQuery(
     { id: tournament._id, date: selectedDate },
-    { skip: !selectedDate }
+    { skip: !selectedDate, pollingInterval: REFRESH_MS }
   );
 
   const { data: totalData, isLoading: totalLoading } = useGetTournamentTotalQuery(
@@ -156,12 +161,42 @@ function TournamentBlock({ tournament }) {
     return best;
   })();
 
-  /** Only the last winner's cell is highlighted in the table, and it keeps blinking until a
-   *  later time is added (the first winner shows in the info box only). */
+  /** The last winner's cell is highlighted green (the first winner shows in the info box only). */
   const isLastWinnerCell = (ownerId, colIndex) =>
     !!lastWinnerPigeon &&
     lastWinnerPigeon.ownerId === String(ownerId) &&
     lastWinnerPigeon.colIndex === colIndex;
+
+  // --- New-time flasher: every pigeon time flashes for 5 minutes after it was entered. ---
+  // Ages are measured with the server's clock (serverTime vs timesAddedAt), then counted down here.
+  const serverTime = dayData?.data?.serverTime;
+  const [now, setNow] = useState(() => Date.now());
+
+  /** When, on this device's clock, the flash of a time entered at `addedAt` ends. */
+  const flashEndsAt = (addedAt) => {
+    if (!addedAt || !serverTime) return 0;
+    const ageAtFetch = new Date(serverTime).getTime() - new Date(addedAt).getTime();
+    return (dayFetchedAt || now) + FLASH_MS - ageAtFetch;
+  };
+  const isFlashing = (matched, ti) =>
+    !!matched?.times?.[ti] && flashEndsAt(matched.timesAddedAt?.[ti]) > now;
+
+  // Re-render the moment the next flash should stop
+  useEffect(() => {
+    let next = Infinity;
+    if (!isTotal && !isDoubleTotal) {
+      results.forEach((r) => {
+        (r.timesAddedAt || []).forEach((addedAt, i) => {
+          if (!r.times?.[i]) return;
+          const end = flashEndsAt(addedAt);
+          if (end > now && end < next) next = end;
+        });
+      });
+    }
+    if (next === Infinity) return;
+    const timer = setTimeout(() => setNow(Date.now()), next - now + 50);
+    return () => clearTimeout(timer);
+  });
 
   // --- Blink-on-new-record logic ---
   const [blinkingRows, setBlinkingRows] = useState({});
@@ -361,9 +396,12 @@ function TournamentBlock({ tournament }) {
 
                     {isDay
                       ? Array.from({ length: totalSlots }).map((_, ti) => {
+                        const flashing = isFlashing(matched, ti);
                         const tone = isLastWinnerCell(owner._id, ti)
-                          ? "bg-green-600 text-white font-semibold animate-winner-blink-last"
-                          : "text-dark font-semibold";
+                          ? `bg-green-600 text-white font-semibold ${flashing ? "animate-winner-blink-last" : ""}`
+                          : flashing
+                            ? "bg-amber-300 text-dark font-semibold animate-new-time"
+                            : "text-dark font-semibold";
                         return (
                           <td key={ti} className={`rt-time text-center whitespace-nowrap transition-colors ${tone}`}>
                             <span className="inline-flex flex-col items-center justify-center gap-0.5">

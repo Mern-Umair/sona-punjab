@@ -6,6 +6,7 @@ const resultSchema = new mongoose.Schema({
   startTime:     { type: String, default: "" },
   times:         [{ type: String }],
   doubleStamps:  [{ type: Boolean }],
+  timesAddedAt:  [{ type: Date }],     // when each pigeon time was entered (site flashes new ones)
   total:         { type: String },
   doubleStampTotal: { type: String },
   isDoubleStamp: { type: Boolean, default: false },

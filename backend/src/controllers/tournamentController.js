@@ -215,6 +215,7 @@ export const getTournamentByDay = async (req, res) => {
       pigeons: tournament.pigeons,
     },
     day,
+    serverTime: new Date().toISOString(), // lets the site measure how old each entered time is
   });
 };
 
@@ -470,8 +471,19 @@ export const saveOwnerDayResult = async (req, res) => {
   const existingIdx = day.results.findIndex(r => String(r.owner) === String(ownerId));
   const isDoubleStamp = normalizedStamps.some(Boolean);
 
+  // When each pigeon time was entered: new or changed times get "now", unchanged ones keep theirs.
+  // The site flashes a time for a few minutes after it was entered.
+  const previous = existingIdx > -1 ? day.results[existingIdx] : null;
+  const enteredNow = new Date();
+  const timesAddedAt = convertedTimes.map((t, i) => {
+    if (!t) return null;
+    const unchanged = previous && previous.times?.[i] === t;
+    return unchanged ? previous.timesAddedAt?.[i] || null : enteredNow;
+  });
+
   if (existingIdx > -1) {
     day.results[existingIdx].times = convertedTimes;
+    day.results[existingIdx].timesAddedAt = timesAddedAt;
     day.results[existingIdx].startTime = finalStartTime;
     day.results[existingIdx].total = total;
     day.results[existingIdx].doubleStamps = normalizedStamps;
@@ -481,6 +493,7 @@ export const saveOwnerDayResult = async (req, res) => {
     day.results.push({
       owner: ownerId,
       times: convertedTimes,
+      timesAddedAt,
       startTime: finalStartTime,
       total,
       doubleStamps: normalizedStamps,
