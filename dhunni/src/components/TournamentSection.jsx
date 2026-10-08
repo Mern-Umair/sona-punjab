@@ -59,8 +59,10 @@ function StampIcon() {
   );
 }
 
-// A pigeon time flashes this long after it was entered (several can flash at once)
+// A pigeon's cell flashes this long after the pigeon landed (several can flash at once)
 const FLASH_MS = 5 * 60 * 1000;
+// Pigeon times are Pakistan clock times (no daylight saving there)
+const PAKISTAN_OFFSET = "+05:00";
 // How often an open page asks for new times, so flashes start without a refresh
 const REFRESH_MS = 30 * 1000;
 
@@ -75,7 +77,7 @@ function TournamentBlock({ tournament }) {
       ? new Date(dates[activeTab]).toISOString().split("T")[0]
       : null;
 
-  const { data: dayData, isLoading: dayLoading, fulfilledTimeStamp: dayFetchedAt } = useGetTournamentByDayQuery(
+  const { data: dayData, isLoading: dayLoading } = useGetTournamentByDayQuery(
     { id: tournament._id, date: selectedDate },
     { skip: !selectedDate, pollingInterval: REFRESH_MS }
   );
@@ -161,40 +163,48 @@ function TournamentBlock({ tournament }) {
     return best;
   })();
 
-  /** The last winner's cell is highlighted green (the first winner shows in the info box only). */
+  /** The last winner's cell is green and keeps blinking until a later time takes its place
+   *  (the first winner shows in the info box only). */
   const isLastWinnerCell = (ownerId, colIndex) =>
     !!lastWinnerPigeon &&
     lastWinnerPigeon.ownerId === String(ownerId) &&
     lastWinnerPigeon.colIndex === colIndex;
 
-  // --- New-time flasher: every pigeon time flashes for 5 minutes after it was entered. ---
-  // Ages are measured with the server's clock (serverTime vs timesAddedAt), then counted down here.
-  const serverTime = dayData?.data?.serverTime;
+  // --- Landing flasher: a pigeon's cell flashes for 5 minutes from the moment it landed
+  // (its time, on the selected day, Pakistan clock). Several can flash at once; each has its own 5 minutes.
   const [now, setNow] = useState(() => Date.now());
 
-  /** When, on this device's clock, the flash of a time entered at `addedAt` ends. */
-  const flashEndsAt = (addedAt) => {
-    if (!addedAt || !serverTime) return 0;
-    const ageAtFetch = new Date(serverTime).getTime() - new Date(addedAt).getTime();
-    return (dayFetchedAt || now) + FLASH_MS - ageAtFetch;
+  /** The moment (epoch ms) a pigeon with this time landed on the selected day; null if unknown. */
+  const landedAt = (time) => {
+    if (!selectedDate || !time) return null;
+    const parts = String(time).split(":");
+    if (parts.length < 2 || parts.some((p) => Number.isNaN(Number(p)))) return null;
+    const [h, m, sec = "0"] = parts;
+    const stamp = Date.parse(
+      `${selectedDate}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}${PAKISTAN_OFFSET}`
+    );
+    return Number.isNaN(stamp) ? null : stamp;
   };
-  const isFlashing = (matched, ti) =>
-    !!matched?.times?.[ti] && flashEndsAt(matched.timesAddedAt?.[ti]) > now;
+  const isFlashing = (matched, ti) => {
+    const at = landedAt(matched?.times?.[ti]);
+    return at !== null && now >= at && now < at + FLASH_MS;
+  };
 
-  // Re-render the moment the next flash should stop
+  // Re-render when the next flash starts or stops
   useEffect(() => {
     let next = Infinity;
     if (!isTotal && !isDoubleTotal) {
       results.forEach((r) => {
-        (r.timesAddedAt || []).forEach((addedAt, i) => {
-          if (!r.times?.[i]) return;
-          const end = flashEndsAt(addedAt);
-          if (end > now && end < next) next = end;
+        (r.times || []).forEach((t) => {
+          const at = landedAt(t);
+          if (at === null) return;
+          const edge = at > now ? at : at + FLASH_MS;
+          if (edge > now && edge < next) next = edge;
         });
       });
     }
     if (next === Infinity) return;
-    const timer = setTimeout(() => setNow(Date.now()), next - now + 50);
+    const timer = setTimeout(() => setNow(Date.now()), Math.min(next - now + 50, 60 * 1000));
     return () => clearTimeout(timer);
   });
 
@@ -396,10 +406,9 @@ function TournamentBlock({ tournament }) {
 
                     {isDay
                       ? Array.from({ length: totalSlots }).map((_, ti) => {
-                        const flashing = isFlashing(matched, ti);
                         const tone = isLastWinnerCell(owner._id, ti)
-                          ? `bg-green-600 text-white font-semibold ${flashing ? "animate-winner-blink-last" : ""}`
-                          : flashing
+                          ? "bg-green-600 text-white font-semibold animate-winner-blink-last"
+                          : isFlashing(matched, ti)
                             ? "bg-amber-300 text-dark font-semibold animate-new-time"
                             : "text-dark font-semibold";
                         return (
