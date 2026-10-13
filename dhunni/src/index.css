@@ -160,6 +160,16 @@ html, body, #root {
   animation: winner-blink-last 2.5s ease-in-out infinite;
 }
 
+/* Any other pigeon time flashes for a few minutes after it is entered */
+@keyframes new-time-flash {
+  0%, 100% { background-color: #fbbf24; }
+  50% { background-color: #fef3c7; }
+}
+
+.animate-new-time {
+  animation: new-time-flash 1.2s ease-in-out infinite;
+}
+
 .swiper-pagination {
   position: absolute !important;
   bottom: 10px !important;

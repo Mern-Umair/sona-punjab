@@ -59,6 +59,13 @@ function StampIcon() {
   );
 }
 
+// A pigeon's cell flashes this long after the pigeon landed (several can flash at once)
+const FLASH_MS = 5 * 60 * 1000;
+// Pigeon times are Pakistan clock times (no daylight saving there)
+const PAKISTAN_OFFSET = "+05:00";
+// How often an open page asks for new times, so flashes start without a refresh
+const REFRESH_MS = 30 * 1000;
+
 function TournamentBlock({ tournament }) {
   const dates = tournament.dates || [];
   const [activeTab, setActiveTab] = useState(() => currentDayIndex(dates));
@@ -72,7 +79,7 @@ function TournamentBlock({ tournament }) {
 
   const { data: dayData, isLoading: dayLoading } = useGetTournamentByDayQuery(
     { id: tournament._id, date: selectedDate },
-    { skip: !selectedDate }
+    { skip: !selectedDate, pollingInterval: REFRESH_MS }
   );
 
   const { data: totalData, isLoading: totalLoading } = useGetTournamentTotalQuery(
@@ -156,12 +163,50 @@ function TournamentBlock({ tournament }) {
     return best;
   })();
 
-  /** Only the last winner's cell is highlighted in the table, and it keeps blinking until a
-   *  later time is added (the first winner shows in the info box only). */
+  /** The last winner's cell is green and keeps blinking until a later time takes its place
+   *  (the first winner shows in the info box only). */
   const isLastWinnerCell = (ownerId, colIndex) =>
     !!lastWinnerPigeon &&
     lastWinnerPigeon.ownerId === String(ownerId) &&
     lastWinnerPigeon.colIndex === colIndex;
+
+  // --- Landing flasher: a pigeon's cell flashes for 5 minutes from the moment it landed
+  // (its time, on the selected day, Pakistan clock). Several can flash at once; each has its own 5 minutes.
+  const [now, setNow] = useState(() => Date.now());
+
+  /** The moment (epoch ms) a pigeon with this time landed on the selected day; null if unknown. */
+  const landedAt = (time) => {
+    if (!selectedDate || !time) return null;
+    const parts = String(time).split(":");
+    if (parts.length < 2 || parts.some((p) => Number.isNaN(Number(p)))) return null;
+    const [h, m, sec = "0"] = parts;
+    const stamp = Date.parse(
+      `${selectedDate}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}${PAKISTAN_OFFSET}`
+    );
+    return Number.isNaN(stamp) ? null : stamp;
+  };
+  const isFlashing = (matched, ti) => {
+    const at = landedAt(matched?.times?.[ti]);
+    return at !== null && now >= at && now < at + FLASH_MS;
+  };
+
+  // Re-render when the next flash starts or stops
+  useEffect(() => {
+    let next = Infinity;
+    if (!isTotal && !isDoubleTotal) {
+      results.forEach((r) => {
+        (r.times || []).forEach((t) => {
+          const at = landedAt(t);
+          if (at === null) return;
+          const edge = at > now ? at : at + FLASH_MS;
+          if (edge > now && edge < next) next = edge;
+        });
+      });
+    }
+    if (next === Infinity) return;
+    const timer = setTimeout(() => setNow(Date.now()), Math.min(next - now + 50, 60 * 1000));
+    return () => clearTimeout(timer);
+  });
 
   // --- Blink-on-new-record logic ---
   const [blinkingRows, setBlinkingRows] = useState({});
@@ -363,7 +408,9 @@ function TournamentBlock({ tournament }) {
                       ? Array.from({ length: totalSlots }).map((_, ti) => {
                         const tone = isLastWinnerCell(owner._id, ti)
                           ? "bg-green-600 text-white font-semibold animate-winner-blink-last"
-                          : "text-dark font-semibold";
+                          : isFlashing(matched, ti)
+                            ? "bg-amber-300 text-dark font-semibold animate-new-time"
+                            : "text-dark font-semibold";
                         return (
                           <td key={ti} className={`rt-time text-center whitespace-nowrap transition-colors ${tone}`}>
                             <span className="inline-flex flex-col items-center justify-center gap-0.5">
