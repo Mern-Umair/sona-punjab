@@ -6,7 +6,7 @@ import { FaTrophy, FaDove, FaUserShield } from "react-icons/fa";
 
 const links = [
   { label: "Dashboard", to: "/", icon: <MdDashboard size={18} /> },
-  { label: "Sona Punjab", href: "https://sona-punjab-dhunni.onrender.com", icon: <MdLanguage size={18} /> },
+  { label: "Highflyer Pigeons", href: "https://highflyerpigeons.com", icon: <MdLanguage size={18} /> },
   { label: "Banners", to: "/banners", icon: <MdImage size={18} /> },
   { label: "Headline", to: "/headline", icon: <MdTitle size={18} /> },
   { label: "Club", to: "/club", icon: <FaDove size={18} /> },
@@ -52,7 +52,7 @@ export default function Sidebar({ open, onClose }) {
         {/* Logo */}
         <div className="px-4 py-4 border-b border-[#1a3570] shrink-0 flex items-center justify-between">
           <div>
-            <p className="text-white font-bold text-base leading-tight">Sona Punjab</p>
+            <p className="text-white font-bold text-base leading-tight">Highflyer Pigeons</p>
             <p className="text-blue-300 text-[10px]">Admin Panel</p>
           </div>
           <button

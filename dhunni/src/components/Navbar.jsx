@@ -269,7 +269,7 @@ export default function Navbar() {
           </div>
 
           <a
-            href="https://sona-punjab-admin.onrender.com"
+            href="https://highflyerpigeons.com/admin"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -278,7 +278,7 @@ export default function Navbar() {
             }}
             className="font-semibold rounded border border-white/60 text-white hover:bg-white hover:text-[#003F72] transition-colors whitespace-nowrap"
           >
-            sona punjab
+            Admin
           </a>
         </div>
       </div>

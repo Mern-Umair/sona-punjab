@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "index.js",
+  "main": "app.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node app.js",
     "dev": "nodemon src/index.js",
     "seed": "node src/scripts/seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"

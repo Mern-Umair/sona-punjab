@@ -30,7 +30,7 @@ export default function HeroBanner() {
           <SwiperSlide key={banner._id}>
             <img
               src={banner.imageUrl}
-              alt="Sona Punjab Banner"
+              alt="Highflyer Pigeons Banner"
               className="w-full block object-cover aspect-[1920/720] md:aspect-auto md:h-[400px]"
             />
           </SwiperSlide>

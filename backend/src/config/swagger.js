@@ -4,11 +4,12 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Sona Punjab API",
+      title: "Highflyer Pigeons API",
       version: "1.0.0",
-      description: "Sona Punjab Pigeon Tournament API",
+      description: "Highflyer Pigeons Tournament API",
     },
     servers: [
+      { url: "https://highflyerpigeons.com/api", description: "Production" },
       { url: "http://localhost:5000/api", description: "Development" },
     ],
     components: {

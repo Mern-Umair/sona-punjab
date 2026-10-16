@@ -67,7 +67,7 @@ export default function LoginPage() {
             <FaDove size={26} className="text-[#122654]" />
           </div>
           <div>
-            <p className="text-[#122654] font-bold text-lg">Sona Punjab</p>
+            <p className="text-[#122654] font-bold text-lg">Highflyer Pigeons</p>
             <p className="text-slate-400 text-xs">Sign in to admin panel</p>
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-slate-400 text-xs text-center mt-6">
-          Sona Punjab © {new Date().getFullYear()}
+          Highflyer Pigeons © {new Date().getFullYear()}
         </p>
       </div>
     </div>

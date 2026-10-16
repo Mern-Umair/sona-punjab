@@ -38,7 +38,7 @@ export default function TopBar({ onMenuClick }) {
             <MdMenu size={22} />
           </button>
           <span className="text-[#122654] font-bold text-sm sm:text-base">
-            Sona Punjab Admin
+            Highflyer Pigeons Admin
           </span>
         </div>
 
