@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "app.js",
+  "main": "src/index.js",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "start": "node app.js",
+    "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "build:static": "node ../scripts/build-static.mjs",
     "seed": "node src/scripts/seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

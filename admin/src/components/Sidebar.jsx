@@ -6,7 +6,7 @@ import { FaTrophy, FaDove, FaUserShield } from "react-icons/fa";
 
 const links = [
   { label: "Dashboard", to: "/", icon: <MdDashboard size={18} /> },
-  { label: "Highflyer Pigeons", href: "https://highflyerpigeons.com", icon: <MdLanguage size={18} /> },
+  { label: "Highflyer Pigeons", href: "/", icon: <MdLanguage size={18} /> },
   { label: "Banners", to: "/banners", icon: <MdImage size={18} /> },
   { label: "Headline", to: "/headline", icon: <MdTitle size={18} /> },
   { label: "Club", to: "/club", icon: <FaDove size={18} /> },
