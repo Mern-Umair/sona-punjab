@@ -26,7 +26,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
-// Behind cPanel / reverse proxy
+// Behind nginx / load balancer on AWS
 app.set("trust proxy", 1);
 
 app.use(cors({
@@ -52,7 +52,7 @@ app.use("/api/tournaments", tournamentRoutes);
 app.use("/api/owners", ownerRoutes);
 app.use("/api/subadmins", subAdminRoutes);
 
-// Static website (dhunni) at /
+// Static website at /
 app.use(express.static(publicDir));
 // Static admin at /admin
 app.use("/admin", express.static(path.join(publicDir, "admin")));
@@ -74,11 +74,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: err.message });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running (${NODE_ENV})`);
-  console.log(`  Listening: 0.0.0.0:${PORT}`);
-  console.log(`  Website:   https://highflyerpigeons.com`);
-  console.log(`  Admin:     https://highflyerpigeons.com/admin`);
-  console.log(`  API:       https://highflyerpigeons.com/api`);
-  console.log(`  Swagger:   http://localhost:${PORT}/api/docs`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running (${NODE_ENV}) on port ${PORT}`);
+  console.log(`  Website:  /`);
+  console.log(`  Admin:    /admin`);
+  console.log(`  API:      /api`);
+  console.log(`  Swagger:  /api/docs`);
 });

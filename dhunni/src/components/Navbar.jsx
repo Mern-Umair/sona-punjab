@@ -269,7 +269,7 @@ export default function Navbar() {
           </div>
 
           <a
-            href="https://highflyerpigeons.com/admin"
+            href="/admin"
             target="_blank"
             rel="noopener noreferrer"
             style={{
