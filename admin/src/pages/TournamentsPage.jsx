@@ -13,6 +13,7 @@ import {
 } from "../../redux/api/tournamentApi";
 import { useGetClubsQuery } from "../../redux/api/clubApi";
 import { useGetOwnersQuery } from "../../redux/api/ownerApi";
+import { useGetSubAdminsQuery } from "../../redux/api/subAdminApi";
 import toast, { Toaster } from "react-hot-toast";
 
 function formatDate(dateStr) {
@@ -140,8 +141,14 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
   const [prizeDetails, setPrizeDetails] = useState(initial?.prizeDetails || []);
   const [search, setSearch] = useState("");
   const [selectedOwners, setSelectedOwners] = useState(initial?.owners || []);
+  // Sub admins allowed to manage this tournament (super admin only)
+  const [selectedSubAdmins, setSelectedSubAdmins] = useState(
+    (initial?.subadmins || []).map((s) => String(s._id || s))
+  );
 
   const { data: clubsData } = useGetClubsQuery();
+  const { data: subAdminsData } = useGetSubAdminsQuery(undefined, { skip: isSubAdmin });
+  const subAdmins = (subAdminsData?.data || []).filter((u) => u.role === "subadmin");
   const { data: ownersData } = useGetOwnersQuery(search);
 
   const clubs = clubsData?.data || [];
@@ -201,6 +208,7 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
     formData.set("dates", JSON.stringify(dates));
     formData.set("prizeDetails", JSON.stringify(prizeDetails));
     formData.set("owners", JSON.stringify(selectedOwners.map(o => o._id)));
+    if (!isSubAdmin) formData.set("subadmins", JSON.stringify(selectedSubAdmins));
     if (form.poster) formData.set("poster", form.poster);
     onSave(formData);
     onClose();
@@ -403,6 +411,37 @@ function CreateTournamentModal({ onClose, onSave, initial }) {
                   <option value="Off Screen">Off Screen</option>
                   <option value="On Screen">On Screen</option>
                 </select>
+              </div>
+            )}
+
+            {/* Sub Admins — super admin only: who may manage this tournament */}
+            {!isSubAdmin && (
+              <div>
+                <label className="text-slate-600 text-sm font-medium block mb-1">Sub Admins (can manage this tournament)</label>
+                {subAdmins.length === 0 ? (
+                  <p className="text-slate-400 text-xs">No sub admins yet.</p>
+                ) : (
+                  <div className="border border-slate-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-slate-100">
+                    {subAdmins.map((s) => {
+                      const checked = selectedSubAdmins.includes(String(s._id));
+                      return (
+                        <label key={s._id} className={`flex items-center gap-3 px-3 py-2 cursor-pointer text-sm ${checked ? "bg-blue-50" : "hover:bg-slate-50"}`}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              setSelectedSubAdmins((prev) =>
+                                checked ? prev.filter((id) => id !== String(s._id)) : [...prev, String(s._id)]
+                              )
+                            }
+                            className="accent-[#0ea5e9]"
+                          />
+                          <span className="text-slate-700">{s.username}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
