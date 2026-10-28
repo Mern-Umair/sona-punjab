@@ -1,38 +1,37 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { logout as logoutAction } from "../../redux/reducer/authReducer";
 
 import { MdDashboard, MdImage, MdTitle, MdGroups, MdLogout, MdLanguage } from "react-icons/md";
 import { FaTrophy, FaDove, FaUserShield } from "react-icons/fa";
 
-const links = [
-  { label: "Dashboard", to: "/", icon: <MdDashboard size={18} /> },
-  { label: "Highflyer Pigeons", href: "/", icon: <MdLanguage size={18} /> },
-  { label: "Banners", to: "/banners", icon: <MdImage size={18} /> },
-  { label: "Headline", to: "/headline", icon: <MdTitle size={18} /> },
-  { label: "Club", to: "/club", icon: <FaDove size={18} /> },
-  { label: "Pigeon Owners", to: "/pigeon-owners", icon: <MdGroups size={18} /> },
-
-  { label: "Tournaments List", to: "/tournaments", icon: <FaTrophy size={18} /> },
-  { label: "SubAdmin List", to: "/subadmin", icon: <FaUserShield size={18} /> },
+const allLinks = [
+  { label: "Dashboard", to: "/", icon: <MdDashboard size={18} />, roles: ["admin"] },
+  { label: "Highflyer Pigeons", href: "/", icon: <MdLanguage size={18} />, roles: ["admin", "subadmin"] },
+  { label: "Banners", to: "/banners", icon: <MdImage size={18} />, roles: ["admin"] },
+  { label: "Headline", to: "/headline", icon: <MdTitle size={18} />, roles: ["admin"] },
+  { label: "Club", to: "/club", icon: <FaDove size={18} />, roles: ["admin"] },
+  { label: "Pigeon Owners", to: "/pigeon-owners", icon: <MdGroups size={18} />, roles: ["admin"] },
+  { label: "Tournaments List", to: "/tournaments", icon: <FaTrophy size={18} />, roles: ["admin", "subadmin"] },
+  { label: "SubAdmin List", to: "/subadmin", icon: <FaUserShield size={18} />, roles: ["admin"] },
 ];
 
 export default function Sidebar({ open, onClose }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const user = useSelector(state => state.auth.user);
-  const filteredLinks = user?.role === "admin"
-    ? links
-    : links.filter(link => link.to !== "/subadmin");
+  const user = useSelector((state) => state.auth.user);
+  const role = user?.role || "subadmin";
+  const filteredLinks = allLinks.filter((link) => link.roles.includes(role));
 
   const logout = () => {
-    localStorage.removeItem("admin_token");
+    dispatch(logoutAction());
     navigate("/login");
   };
 
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
@@ -40,20 +39,19 @@ export default function Sidebar({ open, onClose }) {
         />
       )}
 
-      {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-screen z-[110] 
+        fixed top-0 left-0 h-screen z-[110]
         w-56 shrink-0 bg-[#122654] flex flex-col
         transition-transform duration-300
         ${open ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:self-start
       `}>
-
-        {/* Logo */}
         <div className="px-4 py-4 border-b border-[#1a3570] shrink-0 flex items-center justify-between">
           <div>
             <p className="text-white font-bold text-base leading-tight">Highflyer Pigeons</p>
-            <p className="text-blue-300 text-[10px]">Admin Panel</p>
+            <p className="text-blue-300 text-[10px]">
+              {role === "admin" ? "Admin Panel" : "Sub Admin Panel"}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -63,12 +61,11 @@ export default function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2 overflow-y-auto">
           {filteredLinks.map((link) => (
             link.href ? (
               <button
-                key={link.href}
+                key={link.href + link.label}
                 onClick={() => { window.open(link.href, "_blank", "noopener,noreferrer"); onClose?.(); }}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium text-blue-200 hover:bg-[#1a3570] hover:text-white w-full text-left"
               >
@@ -81,7 +78,7 @@ export default function Sidebar({ open, onClose }) {
                 to={link.to}
                 onClick={onClose}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium
-                  ${pathname === link.to
+                  ${pathname === link.to || (link.to !== "/" && pathname.startsWith(link.to))
                     ? "bg-[#0ea5e9] text-white"
                     : "text-blue-200 hover:bg-[#1a3570] hover:text-white"
                   }`}
@@ -93,7 +90,6 @@ export default function Sidebar({ open, onClose }) {
           ))}
         </nav>
 
-        {/* Logout */}
         <div className="px-2 py-3 border-t border-[#1a3570] shrink-0">
           <button
             onClick={logout}

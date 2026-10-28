@@ -49,7 +49,7 @@ export default function LoginPage() {
       dispatch(setCredentials({ token: res.data.token, user: res.data.user }));
       localStorage.setItem("admin_token", res.data.token);
       toast.success(res.message || "Login successful!");
-      navigate("/");
+      navigate(res.data.user?.role === "subadmin" ? "/tournaments" : "/");
     } catch (err) {
       toast.error(err?.data?.message || "Invalid credentials!");
     }

@@ -1,19 +1,19 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithAuth } from "../baseQuery";
 
 export const tournamentApi = createApi({
   reducerPath: "tournamentApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL,
-    prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.token;
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: ["Tournament"],
   endpoints: (builder) => ({
     getTournaments: builder.query({
-      query: (params = "") => `/tournaments${params}`,
+      // Admin panel uses /mine so subadmins never get the public full list
+      query: (params = "") => {
+        if (typeof params === "string" && params.startsWith("?")) {
+          return `/tournaments${params}`;
+        }
+        return "/tournaments/mine";
+      },
       providesTags: ["Tournament"],
     }),
     getTournament: builder.query({
