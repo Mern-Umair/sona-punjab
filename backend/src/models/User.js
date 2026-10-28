@@ -7,6 +7,10 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: "" },
     password: { type: String, required: true },
     role: { type: String, enum: ["admin", "subadmin"], default: "subadmin" },
+    imageUrl: { type: String, default: "" },
+    imageKey: { type: String, default: "" },
+    // The password as typed, so the super admin can share login details with a sub admin
+    sharePassword: { type: String, default: "" },
   },
   { timestamps: true }
 );

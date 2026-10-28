@@ -5,7 +5,7 @@ import {
   deleteTournament, addDayResults, addTotalResults, toggleScreen,
   saveOwnerDayResult,
 } from "../controllers/tournamentController.js";
-import { protect, adminOnly } from "../middleware/auth.js";
+import { protect, adminOnly, optionalAuth } from "../middleware/auth.js";
 import { uploadSingle } from "../middleware/upload.js";
 
 const router = express.Router();
@@ -16,8 +16,8 @@ const setPosterFolder = (req, res, next) => {
 };
 
 
-router.get("/",                   getTournaments);
-router.get("/:id",                getTournament);
+router.get("/",                   optionalAuth, getTournaments);
+router.get("/:id",                optionalAuth, getTournament);
 router.get("/:id/day/:date",      getTournamentByDay);
 router.get("/:id/total",          getTournamentTotal);
 router.post("/",                  protect, setPosterFolder, uploadSingle("poster"), createTournament);

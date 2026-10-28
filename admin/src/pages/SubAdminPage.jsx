@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MdEdit, MdDelete, MdContentCopy, MdVisibility, MdVisibilityOff } from "react-icons/md";
+import { MdEdit, MdDelete, MdContentCopy, MdVisibility, MdVisibilityOff, MdAdd } from "react-icons/md";
 import {
   useGetSubAdminsQuery,
   useCreateSubAdminMutation,
@@ -15,6 +15,8 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
     role: initial?.role || "subadmin",
     password: "",
     confirm: "",
+    image: null,
+    preview: initial?.imageUrl || null,
   });
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -24,10 +26,20 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
     if (!initial && !form.password) return toast.error("Password is required!");
     if (form.password && form.password !== form.confirm) return toast.error("Passwords do not match!");
 
-    const data = { username: form.username, phone: form.phone, role: form.role };
-    if (form.password) data.password = form.password;
+    const data = new FormData();
+    data.set("username", form.username);
+    data.set("phone", form.phone);
+    data.set("role", form.role);
+    if (form.password) data.set("password", form.password);
+    if (form.image) data.set("image", form.image);
     onSave(data);
     onClose();
+  };
+
+  const handleImage = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    setForm({ ...form, image: f, preview: URL.createObjectURL(f) });
   };
 
   return (
@@ -42,6 +54,18 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
           </div>
 
           <div className="p-6 space-y-4">
+            {/* Image */}
+            <div className="flex flex-col items-center">
+              <p className="text-slate-600 text-sm font-medium mb-2">Image (Optional)</p>
+              <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-[#122654] transition-colors overflow-hidden flex items-center justify-center">
+                {form.preview
+                  ? <img src={form.preview} alt="sub admin" className="w-full h-full object-cover" />
+                  : <MdAdd size={36} className="text-slate-300" />
+                }
+                <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
+              </label>
+            </div>
+
             {/* Username */}
             <div>
               <label className="text-slate-600 text-sm font-medium block mb-1">User Name</label>
@@ -127,11 +151,14 @@ export default function SubAdminPage() {
   const [deleteSubAdmin, { isLoading: deleting }] = useDeleteSubAdminMutation();
 
   const admins = data?.data || [];
+  // Which rows currently show their password in clear text
+  const [shownPasswords, setShownPasswords] = useState({});
+  const togglePassword = (id) => setShownPasswords((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const handleSave = async (formData) => {
     try {
       if (editItem) {
-        await updateSubAdmin({ id: editItem._id, ...formData }).unwrap();
+        await updateSubAdmin({ id: editItem._id, formData }).unwrap();
         toast.success("SubAdmin updated!");
       } else {
         await createSubAdmin(formData).unwrap();
@@ -191,7 +218,9 @@ export default function SubAdminPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="px-4 py-3 text-left text-slate-500 font-medium w-10">#</th>
+                  <th className="px-4 py-3 text-left text-slate-500 font-medium">Image</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">User Name</th>
+                  <th className="px-4 py-3 text-left text-slate-500 font-medium">Password</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Phone</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Role</th>
                   <th className="px-4 py-3 text-right text-slate-500 font-medium">Actions</th>
@@ -200,7 +229,7 @@ export default function SubAdminPage() {
               <tbody>
                 {admins.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-slate-400 text-sm">
+                    <td colSpan={8} className="px-4 py-10 text-center text-slate-400 text-sm">
                       No subadmins yet.
                     </td>
                   </tr>
@@ -208,7 +237,31 @@ export default function SubAdminPage() {
                   admins.map((a, i) => (
                     <tr key={a._id} className="border-t border-slate-100 hover:bg-slate-50">
                       <td className="px-4 py-4 text-slate-400">{i + 1}</td>
+                      <td className="px-4 py-4">
+                        {a.imageUrl ? (
+                          <img src={a.imageUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-[#122654] text-white flex items-center justify-center text-xs font-bold">
+                            {a.username?.charAt(0)?.toUpperCase()}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-4 text-slate-700 font-medium">{a.username}</td>
+                      <td className="px-4 py-4 text-slate-600">
+                        {a.sharePassword ? (
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            <span className="font-mono">{shownPasswords[a._id] ? a.sharePassword : "••••••••"}</span>
+                            <button type="button" title="Show / hide" onClick={() => togglePassword(a._id)} className="text-slate-400 hover:text-slate-600">
+                              {shownPasswords[a._id] ? <MdVisibilityOff size={16} /> : <MdVisibility size={16} />}
+                            </button>
+                            <button type="button" title="Copy login details" onClick={() => handleCopy(`Username: ${a.username}\nPassword: ${a.sharePassword}`)} className="text-slate-400 hover:text-[#0ea5e9]">
+                              <MdContentCopy size={15} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs" title="Set a new password from Edit to see it here">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-4 text-slate-500">{a.phone || "—"}</td>
                       <td className="px-4 py-4 text-left">
                         <span className={`text-xs font-bold ${a.role === "admin" ? "text-green-600" : "text-amber-500"}`}>

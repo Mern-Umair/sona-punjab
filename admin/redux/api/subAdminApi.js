@@ -17,11 +17,11 @@ export const subAdminApi = createApi({
       providesTags: ["SubAdmin"],
     }),
     createSubAdmin: builder.mutation({
-      query: (body) => ({ url: "/subadmins", method: "POST", body }),
+      query: (formData) => ({ url: "/subadmins", method: "POST", body: formData }),
       invalidatesTags: ["SubAdmin"],
     }),
     updateSubAdmin: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/subadmins/${id}`, method: "PUT", body }),
+      query: ({ id, formData }) => ({ url: `/subadmins/${id}`, method: "PUT", body: formData }),
       invalidatesTags: ["SubAdmin"],
     }),
     deleteSubAdmin: builder.mutation({

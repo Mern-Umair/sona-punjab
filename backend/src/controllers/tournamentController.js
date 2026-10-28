@@ -157,10 +157,17 @@ const recomputeDoubleStampResults = (tournament) => {
 };
 
 // @GET /api/tournaments
+/** A sub admin may only see and manage the tournaments assigned to them. */
+const isSubAdmin = (req) => req.user?.role === "subadmin";
+const isAssigned = (req, tournament) =>
+  tournament.subadmins?.some((s) => String(s._id || s) === String(req.user._id));
+const canManage = (req, tournament) => !isSubAdmin(req) || isAssigned(req, tournament);
+
 export const getTournaments = async (req, res) => {
   const { club, status, screen } = req.query;
 
   const query = {};
+  if (isSubAdmin(req)) query.subadmins = req.user._id; // own tournaments only
   if (club) query.club = club;
   if (status) query.status = status;
   if (screen) query.screen = screen;
@@ -187,6 +194,7 @@ export const getTournament = async (req, res) => {
     .populate("doubleStampResults.owner", "name city imageUrl");
 
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
+  if (!canManage(req, tournament)) return errorResponse(res, "Not your tournament", 403);
 
   successResponse(res, tournament);
 };
@@ -272,6 +280,12 @@ export const createTournament = async (req, res) => {
     remaining: parseInt(pigeons) || 0,
   }));
 
+  // A sub admin who creates a tournament is always assigned to it
+  const assignedSubAdmins = subadmins ? JSON.parse(subadmins) : [];
+  if (isSubAdmin(req) && !assignedSubAdmins.some((id) => String(id) === String(req.user._id))) {
+    assignedSubAdmins.push(req.user._id);
+  }
+
   const tournament = await Tournament.create({
     name,
     club: club || null,
@@ -287,7 +301,7 @@ export const createTournament = async (req, res) => {
     prizeDetails: parsedPrizes,
     dates: parsedDates,
     screen: screen || "Off Screen",
-    subadmins: subadmins ? JSON.parse(subadmins) : [],
+    subadmins: assignedSubAdmins,
     owners: owners ? JSON.parse(owners) : [],
     tournamentDays,
     lofts: owners ? JSON.parse(owners).length : 0,
@@ -309,6 +323,7 @@ export const createTournament = async (req, res) => {
 export const updateTournament = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id);
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
+  if (!canManage(req, tournament)) return errorResponse(res, "Not your tournament", 403);
 
   if (req.file) {
     if (tournament.posterKey) await deleteFromS3(tournament.posterKey);
@@ -342,7 +357,8 @@ export const updateTournament = async (req, res) => {
     if (req.body[f] !== undefined) tournament[f] = req.body[f];
   });
 
-  if (req.body.subadmins) tournament.subadmins = JSON.parse(req.body.subadmins);
+  // Only the super admin changes who is assigned
+  if (req.body.subadmins && !isSubAdmin(req)) tournament.subadmins = JSON.parse(req.body.subadmins);
   if (req.body.owners) {
     tournament.owners = JSON.parse(req.body.owners);
     tournament.lofts = tournament.owners.length;
@@ -375,6 +391,7 @@ export const deleteTournament = async (req, res) => {
 export const addDayResults = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id);
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
+  if (!canManage(req, tournament)) return errorResponse(res, "Not your tournament", 403);
 
   const { results, landed, remaining, winnerTime, winnerOwner } = req.body;
 
@@ -404,6 +421,7 @@ export const addDayResults = async (req, res) => {
 export const addTotalResults = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id);
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
+  if (!canManage(req, tournament)) return errorResponse(res, "Not your tournament", 403);
 
   tournament.totalResults = req.body.results || [];
   tournament.status = "done";
@@ -436,6 +454,7 @@ export const toggleScreen = async (req, res) => {
 export const saveOwnerDayResult = async (req, res) => {
   const tournament = await Tournament.findById(req.params.id);
   if (!tournament) return errorResponse(res, "Tournament not found", 404);
+  if (!canManage(req, tournament)) return errorResponse(res, "Not your tournament", 403);
 
   const { ownerId, times, startTime, doubleStamps } = req.body;
   if (!ownerId || !Array.isArray(times)) {
