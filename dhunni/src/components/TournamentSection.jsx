@@ -317,13 +317,13 @@ function TournamentBlock({ tournament }) {
           {isDay && (
             <>
               <p className="whitespace-nowrap">
-                <span className="inline-block bg-cyan-500 text-white font-semibold px-1.5 py-0.5 rounded">
+                <span className="inline-block bg-cyan-200 text-cyan-900 font-semibold px-1.5 py-0.5 rounded">
                   First winner pigeon time:{" "}
                   {firstWinnerPigeon ? `${firstWinnerPigeon.time}, ${firstWinnerPigeon.ownerName}` : "No results yet"}
                 </span>
               </p>
               <p className="whitespace-nowrap">
-                <span className="inline-block bg-green-600 text-white font-semibold px-1.5 py-0.5 rounded">
+                <span className="inline-block bg-green-200 text-green-900 font-semibold px-1.5 py-0.5 rounded">
                   Last winner pigeon time:{" "}
                   {lastWinnerPigeon ? `${lastWinnerPigeon.time}, ${lastWinnerPigeon.ownerName}` : "No results yet"}
                 </span>
@@ -407,7 +407,7 @@ function TournamentBlock({ tournament }) {
                     {isDay
                       ? Array.from({ length: totalSlots }).map((_, ti) => {
                         const tone = isLastWinnerCell(owner._id, ti)
-                          ? "bg-green-600 text-white font-semibold animate-winner-blink-last"
+                          ? "bg-green-200 text-green-900 font-semibold animate-winner-blink-last"
                           : isFlashing(matched, ti)
                             ? "bg-amber-300 text-dark font-semibold animate-new-time"
                             : "text-dark font-semibold";

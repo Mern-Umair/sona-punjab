@@ -152,8 +152,8 @@ html, body, #root {
 
 /* Last winner pigeon cell: keeps blinking until a later time takes its place */
 @keyframes winner-blink-last {
-  0%, 100% { opacity: 1; background-color: #16a34a; }
-  50% { opacity: 0.6; background-color: #86efac; }
+  0%, 100% { opacity: 1; background-color: #bbf7d0; }
+  50% { opacity: 0.7; background-color: #dcfce7; }
 }
 
 .animate-winner-blink-last {
