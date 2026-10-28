@@ -1,6 +1,9 @@
+import mongoose from "mongoose";
 import Tournament from "../models/Tournament.js";
 import { deleteFromS3 } from "../services/s3Service.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 const timeToSeconds = (timeStr) => {
   if (!timeStr) return null;
@@ -163,16 +166,8 @@ const isAssigned = (req, tournament) =>
   tournament.subadmins?.some((s) => String(s._id || s) === String(req.user._id));
 const canManage = (req, tournament) => !isSubAdmin(req) || isAssigned(req, tournament);
 
-export const getTournaments = async (req, res) => {
-  const { club, status, screen } = req.query;
-
-  const query = {};
-  if (isSubAdmin(req)) query.subadmins = req.user._id; // own tournaments only
-  if (club) query.club = club;
-  if (status) query.status = status;
-  if (screen) query.screen = screen;
-
-  const tournaments = await Tournament.find(query)
+const populateTournamentList = (query) =>
+  Tournament.find(query)
     .populate("club", "name")
     .populate("owners", "name city imageUrl phone")
     .populate("subadmins", "username role")
@@ -180,11 +175,35 @@ export const getTournaments = async (req, res) => {
     .populate("doubleStampResults.owner", "name city imageUrl")
     .sort({ createdAt: 1 });
 
+export const getTournaments = async (req, res) => {
+  const { club, status, screen } = req.query;
+
+  const query = {};
+  // Public site + optional auth: subadmins only get assigned tournaments
+  if (isSubAdmin(req)) query.subadmins = req.user._id;
+  if (club) query.club = club;
+  if (status) query.status = status;
+  if (screen) query.screen = screen;
+
+  const tournaments = await populateTournamentList(query);
+  successResponse(res, tournaments);
+};
+
+/** Admin panel list — requires login. Subadmins only see assigned tournaments. */
+export const getMyTournaments = async (req, res) => {
+  const query = {};
+  if (req.user.role === "subadmin") {
+    query.subadmins = req.user._id;
+  }
+
+  const tournaments = await populateTournamentList(query);
   successResponse(res, tournaments);
 };
 
 // @GET /api/tournaments/:id
 export const getTournament = async (req, res) => {
+  if (!isValidId(req.params.id)) return errorResponse(res, "Tournament not found", 404);
+
   const tournament = await Tournament.findById(req.params.id)
     .populate("club", "name")
     .populate("owners", "name city imageUrl phone")
@@ -201,6 +220,8 @@ export const getTournament = async (req, res) => {
 
 // @GET /api/tournaments/:id/day/:date
 export const getTournamentByDay = async (req, res) => {
+  if (!isValidId(req.params.id)) return errorResponse(res, "Tournament not found", 404);
+
   const tournament = await Tournament.findById(req.params.id)
     .populate("club", "name")
     .populate("tournamentDays.results.owner", "name city imageUrl phone");
@@ -228,6 +249,8 @@ export const getTournamentByDay = async (req, res) => {
 
 // @GET /api/tournaments/:id/total
 export const getTournamentTotal = async (req, res) => {
+  if (!isValidId(req.params.id)) return errorResponse(res, "Tournament not found", 404);
+
   const tournament = await Tournament.findById(req.params.id)
     .populate("club", "name")
     .populate("totalResults.owner", "name city imageUrl phone")
@@ -331,6 +354,11 @@ export const updateTournament = async (req, res) => {
     tournament.posterKey = req.file.key;
   }
 
+  // Subadmins may only update results via result endpoints — not tournament settings
+  if (isSubAdmin(req)) {
+    return errorResponse(res, "Sub admins can only manage results for assigned tournaments", 403);
+  }
+
   const fields = [
     "name", "club", "startDate", "startTime", "days",
     "continueDays", "pigeons", "helperPigeons", "prizes", "screen", "status"
@@ -357,8 +385,7 @@ export const updateTournament = async (req, res) => {
     if (req.body[f] !== undefined) tournament[f] = req.body[f];
   });
 
-  // Only the super admin changes who is assigned
-  if (req.body.subadmins && !isSubAdmin(req)) tournament.subadmins = JSON.parse(req.body.subadmins);
+  if (req.body.subadmins) tournament.subadmins = JSON.parse(req.body.subadmins);
   if (req.body.owners) {
     tournament.owners = JSON.parse(req.body.owners);
     tournament.lofts = tournament.owners.length;

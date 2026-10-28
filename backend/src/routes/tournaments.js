@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  getTournaments, getTournament, getTournamentByDay,
+  getTournaments, getMyTournaments, getTournament, getTournamentByDay,
   getTournamentTotal, createTournament, updateTournament,
   deleteTournament, addDayResults, addTotalResults, toggleScreen,
   saveOwnerDayResult,
@@ -15,12 +15,13 @@ const setPosterFolder = (req, res, next) => {
   next();
 };
 
-
 router.get("/",                   optionalAuth, getTournaments);
+// Must be registered before /:id
+router.get("/mine",               protect, getMyTournaments);
 router.get("/:id",                optionalAuth, getTournament);
 router.get("/:id/day/:date",      getTournamentByDay);
 router.get("/:id/total",          getTournamentTotal);
-router.post("/",                  protect, setPosterFolder, uploadSingle("poster"), createTournament);
+router.post("/",                  protect, adminOnly, setPosterFolder, uploadSingle("poster"), createTournament);
 router.put("/:id",                protect, setPosterFolder, uploadSingle("poster"), updateTournament);
 router.delete("/:id",             protect, adminOnly, deleteTournament);
 router.post("/:id/results/:date", protect, addDayResults);
