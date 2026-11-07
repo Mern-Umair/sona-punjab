@@ -45,9 +45,15 @@ export const updateSubAdmin = async (req, res) => {
   user.phone    = req.body.phone    ?? user.phone;
   user.role     = req.body.role     || user.role;
 
-  if (req.body.password) {
-    user.password = req.body.password;
-    user.sharePassword = req.body.password;
+  // multer may give string or single-item array for text fields
+  let rawPassword = req.body.password;
+  if (Array.isArray(rawPassword)) rawPassword = rawPassword[0];
+  const plainPassword = typeof rawPassword === "string" ? rawPassword.trim() : "";
+
+  if (plainPassword) {
+    user.password = plainPassword;
+    user.sharePassword = plainPassword;
+    user.markModified("password");
   }
   if (req.file) {
     if (user.imageKey) await deleteFromS3(user.imageKey);
@@ -56,7 +62,11 @@ export const updateSubAdmin = async (req, res) => {
   }
 
   await user.save();
-  successResponse(res, { id: user._id, username: user.username, role: user.role }, "Updated");
+  successResponse(
+    res,
+    { id: user._id, username: user.username, role: user.role, sharePassword: user.sharePassword },
+    "Updated"
+  );
 };
 
 // @DELETE /api/subadmins/:id
