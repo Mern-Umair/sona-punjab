@@ -8,7 +8,7 @@ import {
 } from "../../redux/api/subAdminApi";
 import toast, { Toaster } from "react-hot-toast";
 
-function CreateSubAdminModal({ onClose, onSave, initial }) {
+function CreateSubAdminModal({ onClose, onSave, initial, saving }) {
   const [form, setForm] = useState({
     username: initial?.username || "",
     phone: initial?.phone || "",
@@ -21,25 +21,33 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.username.trim()) return toast.error("Username is required!");
-    if (!initial && !form.password) return toast.error("Password is required!");
-    if (form.password && form.password !== form.confirm) return toast.error("Passwords do not match!");
+    const password = form.password.trim();
+    const confirm = form.confirm.trim();
+    if (!initial && !password) return toast.error("Password is required!");
+    if (password && password !== confirm) return toast.error("Passwords do not match!");
 
     const data = new FormData();
-    data.set("username", form.username);
-    data.set("phone", form.phone);
+    data.set("username", form.username.trim());
+    data.set("phone", form.phone.trim());
     data.set("role", form.role);
-    if (form.password) data.set("password", form.password);
+    if (password) data.set("password", password);
     if (form.image) data.set("image", form.image);
-    onSave(data);
-    onClose();
+
+    try {
+      // Await save before closing so edit id/state is not cleared mid-request
+      await onSave(data, initial?._id);
+      onClose();
+    } catch {
+      // Error toast is handled by parent; keep modal open for retry
+    }
   };
 
   const handleImage = (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    setForm({ ...form, image: f, preview: URL.createObjectURL(f) });
+    setForm((prev) => ({ ...prev, image: f, preview: URL.createObjectURL(f) }));
   };
 
   return (
@@ -72,7 +80,7 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
               <input
                 type="text"
                 value={form.username}
-                onChange={e => setForm({ ...form, username: e.target.value })}
+                onChange={e => setForm((prev) => ({ ...prev, username: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
               />
             </div>
@@ -83,7 +91,7 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
               <input
                 type="tel"
                 value={form.phone}
-                onChange={e => setForm({ ...form, phone: e.target.value })}
+                onChange={e => setForm((prev) => ({ ...prev, phone: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
               />
             </div>
@@ -93,7 +101,7 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
               <label className="text-slate-600 text-sm font-medium block mb-1">Role</label>
               <select
                 value={form.role}
-                onChange={e => setForm({ ...form, role: e.target.value })}
+                onChange={e => setForm((prev) => ({ ...prev, role: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors bg-white"
               >
                 <option value="subadmin">Sub Admin</option>
@@ -103,8 +111,18 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
 
             {/* Password */}
             {[
-              { label: "Password", key: "password", show: showPass, toggle: () => setShowPass(!showPass) },
-              { label: "Confirm Password", key: "confirm", show: showConfirm, toggle: () => setShowConfirm(!showConfirm) },
+              {
+                label: initial ? "New Password (optional)" : "Password",
+                key: "password",
+                show: showPass,
+                toggle: () => setShowPass(!showPass),
+              },
+              {
+                label: initial ? "Confirm New Password" : "Confirm Password",
+                key: "confirm",
+                show: showConfirm,
+                toggle: () => setShowConfirm(!showConfirm),
+              },
             ].map(f => (
               <div key={f.key}>
                 <label className="text-slate-600 text-sm font-medium block mb-1">{f.label}</label>
@@ -112,7 +130,7 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
                   <input
                     type={f.show ? "text" : "password"}
                     value={form[f.key]}
-                    onChange={e => setForm({ ...form, [f.key]: e.target.value })}
+                    onChange={e => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
                     className="w-full border border-slate-200 rounded-lg px-4 pr-10 py-2.5 text-sm outline-none focus:border-[#122654] transition-colors"
                   />
                   <button
@@ -129,10 +147,12 @@ function CreateSubAdminModal({ onClose, onSave, initial }) {
 
           <div className="px-6 py-4 border-t border-slate-100 flex justify-center">
             <button
+              type="button"
               onClick={handleSubmit}
-              className="w-48 bg-[#0ea5e9] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#0284c7] transition-colors"
+              disabled={saving}
+              className="w-48 bg-[#0ea5e9] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#0284c7] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Submit
+              {saving ? "Saving..." : "Submit"}
             </button>
           </div>
         </div>
@@ -155,10 +175,10 @@ export default function SubAdminPage() {
   const [shownPasswords, setShownPasswords] = useState({});
   const togglePassword = (id) => setShownPasswords((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  const handleSave = async (formData) => {
+  const handleSave = async (formData, id) => {
     try {
-      if (editItem) {
-        await updateSubAdmin({ id: editItem._id, formData }).unwrap();
+      if (id) {
+        await updateSubAdmin({ id, formData }).unwrap();
         toast.success("SubAdmin updated!");
       } else {
         await createSubAdmin(formData).unwrap();
@@ -167,6 +187,7 @@ export default function SubAdminPage() {
       setEditItem(null);
     } catch (err) {
       toast.error(err?.data?.message || "Something went wrong!");
+      throw err;
     }
   };
 
@@ -194,6 +215,7 @@ export default function SubAdminPage() {
           onClose={() => { setShowModal(false); setEditItem(null); }}
           onSave={handleSave}
           initial={editItem}
+          saving={creating || updating}
         />
       )}
 

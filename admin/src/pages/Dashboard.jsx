@@ -7,7 +7,7 @@ export default function Dashboard() {
       <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
         <img
           src={welcomeImg}
-          alt="خوش آمدید سوہنا پنجاب"
+          alt="Welcome Highflyer Pigeons"
           className="w-full h-auto object-cover"
         />
       </div>
