@@ -36,12 +36,19 @@ function AdminLayout({ children }) {
 
 function ProtectedRoute({ children, roles }) {
   const user = useSelector((state) => state.auth.user);
+  const role = String(user?.role || "").toLowerCase();
 
   if (!isLoggedIn()) {
     return <Navigate to="/login" replace />;
   }
 
-  if (roles && user && !roles.includes(user.role)) {
+  // No role in storage → force re-login rather than showing admin pages
+  if (!role) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Subadmins may only open routes that explicitly allow "subadmin"
+  if (roles && !roles.map((r) => r.toLowerCase()).includes(role)) {
     return <Navigate to="/tournaments" replace />;
   }
 

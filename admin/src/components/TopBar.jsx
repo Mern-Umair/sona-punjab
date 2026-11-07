@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdMenu, MdLogout, MdPerson } from "react-icons/md";
-import { useSelector } from "react-redux";
+import { MdMenu, MdLogout } from "react-icons/md";
+import { useDispatch, useSelector } from "react-redux";
+import { logout as logoutAction } from "../../redux/reducer/authReducer";
 
 export default function TopBar({ onMenuClick }) {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const user = useSelector(state => state.auth.user);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const logout = () => {
-    localStorage.removeItem("admin_token");
+    dispatch(logoutAction());
     navigate("/login");
   };
 
