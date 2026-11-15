@@ -11,7 +11,7 @@ const allLinks = [
   { label: "Banners", to: "/banners", icon: <MdImage size={18} />, roles: ["admin"] },
   { label: "Headline", to: "/headline", icon: <MdTitle size={18} />, roles: ["admin"] },
   { label: "Club", to: "/club", icon: <FaDove size={18} />, roles: ["admin"] },
-  { label: "Pigeon Owners", to: "/pigeon-owners", icon: <MdGroups size={18} />, roles: ["admin"] },
+  { label: "Pigeon Owners", to: "/pigeon-owners", icon: <MdGroups size={18} />, roles: ["admin", "subadmin"] },
   { label: "Tournaments List", to: "/tournaments", icon: <FaTrophy size={18} />, roles: ["admin", "subadmin"] },
   { label: "SubAdmin List", to: "/subadmin", icon: <FaUserShield size={18} />, roles: ["admin"] },
 ];

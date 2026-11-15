@@ -63,7 +63,7 @@ export default function App() {
       <Route path="/banners" element={<ProtectedRoute roles={["admin"]}><BannersPage /></ProtectedRoute>} />
       <Route path="/headline" element={<ProtectedRoute roles={["admin"]}><HeadlinePage /></ProtectedRoute>} />
       <Route path="/club" element={<ProtectedRoute roles={["admin"]}><ClubPage /></ProtectedRoute>} />
-      <Route path="/pigeon-owners" element={<ProtectedRoute roles={["admin"]}><PigeonOwnersPage /></ProtectedRoute>} />
+      <Route path="/pigeon-owners" element={<ProtectedRoute roles={["admin", "subadmin"]}><PigeonOwnersPage /></ProtectedRoute>} />
       <Route path="/subadmin" element={<ProtectedRoute roles={["admin"]}><SubAdminPage /></ProtectedRoute>} />
       <Route path="/tournaments" element={<ProtectedRoute roles={["admin", "subadmin"]}><TournamentsPage /></ProtectedRoute>} />
       <Route path="/tournaments/:id/result" element={<ProtectedRoute roles={["admin", "subadmin"]}><CreateResultPage /></ProtectedRoute>} />

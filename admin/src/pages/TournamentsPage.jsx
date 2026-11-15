@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { MdCalendarToday } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { MdEdit, MdDelete, MdAdd, MdPersonAdd } from "react-icons/md";
+import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
 import { FaTrophy } from "react-icons/fa";
 import {
   useGetTournamentsQuery,
@@ -15,106 +15,6 @@ import { useGetClubsQuery } from "../../redux/api/clubApi";
 import { useGetOwnersQuery } from "../../redux/api/ownerApi";
 import { useGetSubAdminsQuery } from "../../redux/api/subAdminApi";
 import toast, { Toaster } from "react-hot-toast";
-
-/** Admin-only: assign one or more sub admins to a tournament. */
-function AssignSubAdminModal({ tournament, onClose, onSave, saving }) {
-  const { data: subAdminsData, isLoading } = useGetSubAdminsQuery();
-  const subAdmins = (subAdminsData?.data || []).filter((u) => u.role === "subadmin");
-  const [selected, setSelected] = useState(
-    (tournament?.subadmins || []).map((s) => String(s._id || s))
-  );
-
-  const toggle = (id) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const handleSave = () => {
-    const formData = new FormData();
-    formData.set("subadmins", JSON.stringify(selected));
-    onSave(formData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[200] overflow-y-auto">
-      <div className="min-h-screen flex items-start justify-center px-3 py-4 sm:px-4 sm:py-8 sm:mt-8">
-        <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-            <div>
-              <h3 className="text-slate-800 font-bold text-lg">Assign Sub Admin</h3>
-              <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[260px]">
-                {tournament?.name}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 text-xl font-bold"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="p-5">
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="w-7 h-7 border-4 border-t-transparent border-[#122654] rounded-full animate-spin" />
-              </div>
-            ) : subAdmins.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-6">
-                No sub admins yet. Create one from SubAdmin List first.
-              </p>
-            ) : (
-              <div className="border border-slate-200 rounded-lg max-h-64 overflow-y-auto divide-y divide-slate-100">
-                {subAdmins.map((s) => {
-                  const id = String(s._id);
-                  const checked = selected.includes(id);
-                  return (
-                    <label
-                      key={id}
-                      className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer text-sm ${
-                        checked ? "bg-blue-50" : "hover:bg-slate-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggle(id)}
-                        className="accent-[#0ea5e9]"
-                      />
-                      <span className="text-slate-700 font-medium">{s.username}</span>
-                      {s.phone ? (
-                        <span className="text-slate-400 text-xs ml-auto">{s.phone}</span>
-                      ) : null}
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || isLoading}
-              className="px-5 py-2 rounded-lg text-sm font-semibold bg-[#0ea5e9] text-white hover:bg-[#0284c7] disabled:opacity-60"
-            >
-              {saving ? "Saving..." : "Save Assignment"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
@@ -660,7 +560,6 @@ export default function TournamentsPage() {
   const isSubAdmin = user?.role !== "admin";
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [assignItem, setAssignItem] = useState(null);
 
   const { data, isLoading } = useGetTournamentsQuery();
   const [createTournament, { isLoading: creating }] = useCreateTournamentMutation();
@@ -668,13 +567,11 @@ export default function TournamentsPage() {
   const [deleteTournament, { isLoading: deleting }] = useDeleteTournamentMutation();
   const [toggleScreen, { isLoading: toggling }] = useToggleScreenMutation();
 
-  // Backend /mine already filters; client safety net so subadmins never see unassigned
+  // Everyone sees the full list; a sub admin may only open/edit the tournaments assigned to them
   const myId = String(user?.id || user?._id || "");
-  const tournaments = (data?.data || []).filter((t) => {
-    if (!isSubAdmin) return true;
-    if (!myId) return false;
-    return (t.subadmins || []).some((s) => String(s._id || s) === myId);
-  });
+  const tournaments = data?.data || [];
+  const canEdit = (t) =>
+    !isSubAdmin || (!!myId && (t.subadmins || []).some((s) => String(s._id || s) === myId));
 
   const handleSave = async (formData) => {
     try {
@@ -688,16 +585,6 @@ export default function TournamentsPage() {
       setEditItem(null);
     } catch (err) {
       toast.error(err?.data?.message || "Something went wrong!");
-    }
-  };
-
-  const handleAssignSave = async (formData) => {
-    try {
-      await updateTournament({ id: assignItem._id, formData }).unwrap();
-      toast.success("Sub admins assigned!");
-      setAssignItem(null);
-    } catch (err) {
-      toast.error(err?.data?.message || "Failed to assign sub admin!");
     }
   };
 
@@ -732,14 +619,6 @@ export default function TournamentsPage() {
         />
       )}
 
-      {assignItem && (
-        <AssignSubAdminModal
-          tournament={assignItem}
-          onClose={() => setAssignItem(null)}
-          onSave={handleAssignSave}
-          saving={updating}
-        />
-      )}
 
       <div className="flex items-center justify-between">
         <h2 className="text-slate-800 font-bold text-xl">
@@ -769,9 +648,7 @@ export default function TournamentsPage() {
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Poster</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Name</th>
                   <th className="px-4 py-3 text-left text-slate-500 font-medium">Club</th>
-                  {!isSubAdmin && (
-                    <th className="px-4 py-3 text-left text-slate-500 font-medium">Sub Admins</th>
-                  )}
+                  <th className="px-4 py-3 text-left text-slate-500 font-medium">Sub Admins</th>
                   <th className="px-4 py-3 text-center text-slate-500 font-medium">Start Date</th>
                   <th className="px-4 py-3 text-center text-slate-500 font-medium">Pigeons</th>
                   <th className="px-4 py-3 text-center text-slate-500 font-medium">Lofts</th>
@@ -781,10 +658,8 @@ export default function TournamentsPage() {
               <tbody>
                 {tournaments.length === 0 ? (
                   <tr>
-                    <td colSpan={isSubAdmin ? 8 : 9} className="px-4 py-10 text-center text-slate-400 text-sm">
-                      {isSubAdmin
-                        ? "No tournaments assigned to you yet."
-                        : 'No tournaments yet. Click "Create New Tournament" to add.'}
+                    <td colSpan={9} className="px-4 py-10 text-center text-slate-400 text-sm">
+                      {isSubAdmin ? "No tournaments yet." : 'No tournaments yet. Click "Create New Tournament" to add.'}
                     </td>
                   </tr>
                 ) : (
@@ -828,8 +703,7 @@ export default function TournamentsPage() {
                           </button>
                         )}
                       </td>
-                      {!isSubAdmin && (
-                        <td className="px-4 py-4">
+                      <td className="px-4 py-4">
                           {(t.subadmins || []).length === 0 ? (
                             <span className="text-slate-400 text-xs">None</span>
                           ) : (
@@ -845,7 +719,6 @@ export default function TournamentsPage() {
                             </div>
                           )}
                         </td>
-                      )}
                       <td className="px-4 py-4 text-center text-slate-500">
                         {formatDate(t.startDate)}
                       </td>
@@ -853,18 +726,7 @@ export default function TournamentsPage() {
                       <td className="px-4 py-4 text-center text-slate-600">{t.lofts}</td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          {!isSubAdmin && (
-                            <button
-                              onClick={() => setAssignItem(t)}
-                              disabled={updating}
-                              title="Assign Sub Admin"
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium justify-center"
-                            >
-                              <MdPersonAdd size={14} />
-                              Assign
-                            </button>
-                          )}
-                          {!isSubAdmin && (
+                          {canEdit(t) && (
                             <button
                               onClick={() => { setEditItem(t); setShowModal(true); }}
                               disabled={updating}
@@ -882,12 +744,18 @@ export default function TournamentsPage() {
                               <MdDelete size={14} />
                             </button>
                           )}
-                          <button
-                            onClick={() => navigate(`/tournaments/${t._id}/result`)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center"
-                          >
-                            Result
-                          </button>
+                          {canEdit(t) ? (
+                            <button
+                              onClick={() => navigate(`/tournaments/${t._id}/result`)}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium justify-center"
+                            >
+                              Result
+                            </button>
+                          ) : (
+                            <span title="Not assigned to you" className="px-3 py-1.5 rounded-md bg-slate-100 text-slate-400 text-xs font-medium whitespace-nowrap">
+                              Not assigned
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>

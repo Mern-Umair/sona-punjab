@@ -189,14 +189,10 @@ export const getTournaments = async (req, res) => {
   successResponse(res, tournaments);
 };
 
-/** Admin panel list — requires login. Subadmins only see assigned tournaments. */
+/** Admin panel list — requires login. Everyone sees the full list;
+ *  a sub admin can only open/edit the tournaments assigned to them (checked per request). */
 export const getMyTournaments = async (req, res) => {
-  const query = {};
-  if (req.user.role === "subadmin") {
-    query.subadmins = req.user._id;
-  }
-
-  const tournaments = await populateTournamentList(query);
+  const tournaments = await populateTournamentList({});
   successResponse(res, tournaments);
 };
 
@@ -354,11 +350,6 @@ export const updateTournament = async (req, res) => {
     tournament.posterKey = req.file.key;
   }
 
-  // Subadmins may only update results via result endpoints — not tournament settings
-  if (isSubAdmin(req)) {
-    return errorResponse(res, "Sub admins can only manage results for assigned tournaments", 403);
-  }
-
   const fields = [
     "name", "club", "startDate", "startTime", "days",
     "continueDays", "pigeons", "helperPigeons", "prizes", "screen", "status"
@@ -385,7 +376,8 @@ export const updateTournament = async (req, res) => {
     if (req.body[f] !== undefined) tournament[f] = req.body[f];
   });
 
-  if (req.body.subadmins) tournament.subadmins = JSON.parse(req.body.subadmins);
+  // Only the super admin can change which sub admins are assigned
+  if (req.body.subadmins && !isSubAdmin(req)) tournament.subadmins = JSON.parse(req.body.subadmins);
   if (req.body.owners) {
     tournament.owners = JSON.parse(req.body.owners);
     tournament.lofts = tournament.owners.length;

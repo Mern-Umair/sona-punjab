@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
 import {
   useGetOwnersQuery,
@@ -100,6 +101,8 @@ export default function PigeonOwnersPage() {
   const [createOwner, { isLoading: creating }] = useCreateOwnerMutation();
   const [updateOwner, { isLoading: updating }] = useUpdateOwnerMutation();
   const [deleteOwner, { isLoading: deleting }] = useDeleteOwnerMutation();
+  const user = useSelector((state) => state.auth.user);
+  const isSubAdmin = user?.role !== "admin";
 
   const owners = data?.data || [];
 
@@ -208,13 +211,15 @@ export default function PigeonOwnersPage() {
                           >
                             <MdEdit size={14} />
                           </button>
-                          <button
-                            onClick={() => handleDelete(o._id)}
-                            disabled={deleting}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs font-medium transition-colors"
-                          >
-                            <MdDelete size={14} />
-                          </button>
+                          {!isSubAdmin && (
+                            <button
+                              onClick={() => handleDelete(o._id)}
+                              disabled={deleting}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs font-medium transition-colors"
+                            >
+                              <MdDelete size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
