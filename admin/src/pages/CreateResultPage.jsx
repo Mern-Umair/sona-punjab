@@ -445,7 +445,7 @@ export default function CreateResultPage() {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const { data: tData, isLoading: tLoading } = useGetTournamentQuery(id);
+    const { data: tData, isLoading: tLoading, error: tError } = useGetTournamentQuery(id);
     const tournament = tData?.data;
 
     const [activeDate, setActiveDate] = useState(null);
@@ -595,6 +595,25 @@ export default function CreateResultPage() {
 
     if (tLoading) {
         return <div className="py-20 text-center text-slate-400">Loading...</div>;
+    }
+
+    // A sub admin may only open the result page of a tournament assigned to them (backend answers 403)
+    if (tError || !tournament) {
+        return (
+            <div className="py-20 text-center space-y-4">
+                <p className="text-slate-500 font-medium">
+                    {tError?.status === 403
+                        ? "This tournament is not assigned to you."
+                        : tError?.data?.message || "Tournament not found."}
+                </p>
+                <button
+                    onClick={() => navigate("/tournaments")}
+                    className="text-[#0ea5e9] hover:text-[#0284c7] font-semibold text-sm"
+                >
+                    ← Back to tournaments
+                </button>
+            </div>
+        );
     }
 
     return (

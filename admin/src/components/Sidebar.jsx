@@ -7,7 +7,7 @@ import { FaTrophy, FaDove, FaUserShield } from "react-icons/fa";
 
 const allLinks = [
   { label: "Dashboard", to: "/", icon: <MdDashboard size={18} />, roles: ["admin"] },
-  { label: "Highflyer Pigeons", href: "/", icon: <MdLanguage size={18} />, roles: ["admin"] },
+  { label: "Highflyer Pigeons", href: "/", icon: <MdLanguage size={18} />, roles: ["admin", "subadmin"] },
   { label: "Banners", to: "/banners", icon: <MdImage size={18} />, roles: ["admin"] },
   { label: "Headline", to: "/headline", icon: <MdTitle size={18} />, roles: ["admin"] },
   { label: "Club", to: "/club", icon: <FaDove size={18} />, roles: ["admin"] },

@@ -273,12 +273,14 @@ export default function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              fontSize: "clamp(9px, 2.3vw, 14px)",
-              padding: "clamp(3px, 1vw, 6px) clamp(6px, 1.8vw, 12px)",
+              fontSize: "clamp(8px, 2.2vw, 14px)",
+              padding: "clamp(2px, 0.8vw, 6px) clamp(5px, 1.6vw, 12px)",
             }}
-            className="font-semibold rounded border border-white/60 text-white hover:bg-white hover:text-[#003F72] transition-colors whitespace-nowrap"
+            className="font-semibold rounded border border-white/60 text-white hover:bg-white hover:text-[#003F72] transition-colors whitespace-nowrap text-center leading-tight"
           >
-            Admin
+            {/* Two short lines on phones so the pill stays narrow; one line from tablets up */}
+            <span className="block sm:inline">Highflyer</span>
+            <span className="block sm:inline sm:ml-1">Pigeons</span>
           </a>
         </div>
       </div>
